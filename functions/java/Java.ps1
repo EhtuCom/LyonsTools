@@ -69,7 +69,7 @@ function Install-LTJavaTemurin {
         if (-not (Install-LTWinget -Id "EclipseAdoptium.Temurin.$lts.JRE")) { Open-LTUrl 'https://adoptium.net/temurin/releases/' }
         return
     }
-    if (-not (Test-LTSignature -Path $file)) { return }
+    if (-not (Test-LTSignature -Path $file -ExpectedPublisher 'Eclipse')) { return }
     # FeatureEnvironment/FeatureJavaHome set PATH and JAVA_HOME, FeatureJarFileRunWith opens .jar files,
     # FeatureOracleJavaSoft writes the HKLM\SOFTWARE\JavaSoft keys that older apps look for.
     [void](Start-LTInstaller -Path $file -Arguments 'ADDLOCAL=FeatureMain,FeatureEnvironment,FeatureJarFileRunWith,FeatureJavaHome,FeatureOracleJavaSoft /passive /norestart')
@@ -90,7 +90,7 @@ function Install-LTJavaOracle8 {
             Select-Object -First 1
         if (-not $link) { throw 'link not found' }
         $file = Save-LTFile -Url ([Net.WebUtility]::HtmlDecode($link.href)) -FileName 'jre8-windows-x64.exe'
-        if (-not (Test-LTSignature -Path $file)) { return }
+        if (-not (Test-LTSignature -Path $file -ExpectedPublisher 'Oracle')) { return }
         [void](Start-LTInstaller -Path $file -Arguments '/s')
     }
     catch {

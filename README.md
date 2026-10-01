@@ -31,7 +31,16 @@ Actions marked **Administrator** are disabled for standard users, who never see 
 | Default PDF app / default browser | Always per user. Windows requires the user to confirm the choice. |
 | Restart Explorer | Only restarts the current session, never other users' sessions. |
 
-On Windows Server without winget, Chrome and Firefox are installed from their official enterprise MSI packages.
+What changes on Windows Server:
+
+- **No winget:** Chrome, Edge, Firefox, Adobe Reader, Java (Temurin and Oracle 8) are downloaded from their official enterprise installers instead.
+- **Remote Desktop Session Host:** installers run in *install mode* (`change user /install` … `/execute`), as Microsoft recommends, so they are set up for every user.
+- **Server Core** has no desktop, so only the command line mode works there (`-Run`).
+- **Quick Assist** does not exist on Windows Server; the action says so.
+
+Every installer's digital signature is verified and must belong to the expected publisher (FNMT, Autofirma, Consorci AOC, Bit4id, Adobe, Google, Microsoft, Mozilla, Eclipse, Oracle). A download from the wrong publisher is never run.
+
+Requirements: Windows PowerShell 5.1, which is built into Windows 10, Windows 11 and Windows Server 2016 or later. Windows Server 2012 R2 and older are not supported. On an old, unpatched Windows 10 / Server 2016 where `irm` fails with a TLS error, use `LyonsTools.cmd` instead: it forces TLS 1.2 before downloading.
 
 ## What it includes
 

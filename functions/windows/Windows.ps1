@@ -10,6 +10,13 @@ function Enable-LTFileExtensions {
 }
 
 function Enable-LTClipboardHistory {
+    # Clipboard history exists since Windows 10 1809 / Windows Server 2019 (build 17763).
+    if ($LT.Build -lt 17763) {
+        Write-LTLog "Clipboard history is not available on this Windows version (it needs Windows 10 1809 / Server 2019 or later)." `
+            "El historial del portapapeles no está disponible en esta versión de Windows (necesita Windows 10 1809 / Server 2019 o posterior)." `
+            "L'historial del porta-retalls no està disponible en aquesta versió de Windows (necessita Windows 10 1809 / Server 2019 o posterior)." -Level Warn
+        return
+    }
     $key = 'HKCU:\Software\Microsoft\Clipboard'
     if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
     Set-ItemProperty -Path $key -Name 'EnableClipboardHistory' -Value 1 -Type DWord
@@ -61,11 +68,12 @@ function Start-LTQuickAssist {
     Write-LTLog "Opening Quick Assist. Choose 'Help someone' or enter the code the technician gives you." `
         "Abriendo Asistencia rápida. Elige 'Ayudar a alguien' o introduce el código que te dé el técnico." `
         "Obrint l'Assistència ràpida. Tria 'Ajudar algú' o introdueix el codi que et doni el tècnic."
-    try { Start-Process 'ms-quick-assist:' -ErrorAction Stop }
-    catch {
-        Write-LTLog "Quick Assist is not installed. Opening Microsoft Store..." "Asistencia rápida no está instalada. Abriendo Microsoft Store..." "L'Assistència ràpida no està instal·lada. Obrint Microsoft Store..." -Level Warn
-        Start-Process 'ms-windows-store://pdp/?ProductId=9P7BP5VNWKX5'
-    }
+    # Store app (Windows 10 2004+ / 11), then the classic built-in quickassist.exe (older Windows 10), then the Store page.
+    $classic = Join-Path $env:SystemRoot 'System32\quickassist.exe'
+    try { Start-Process 'ms-quick-assist:' -ErrorAction Stop; return } catch { }
+    if (Test-Path $classic) { Start-Process $classic; return }
+    Write-LTLog "Quick Assist is not installed. Opening Microsoft Store..." "Asistencia rápida no está instalada. Abriendo Microsoft Store..." "L'Assistència ràpida no està instal·lada. Obrint Microsoft Store..." -Level Warn
+    Start-Process 'ms-windows-store://pdp/?ProductId=9P7BP5VNWKX5'
 }
 
 function Open-LTWindowsUpdate {

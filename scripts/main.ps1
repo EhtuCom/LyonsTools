@@ -8,6 +8,11 @@ foreach ($tab in $LT.Config.tabs) {
     }
 }
 $LT.CanElevate = Test-LTCanElevate
+# Office 2016/2019/2021/2024/365 use 16.0; Office 2013 uses 15.0. Policies follow the same version.
+$LT.OfficeVersion = if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Office\16.0\Common\InstallRoot') { '16.0' }
+elseif (Test-Path 'HKLM:\SOFTWARE\Microsoft\Office\15.0\Common\InstallRoot') { '15.0' }
+elseif (Test-Path 'HKLM:\SOFTWARE\Microsoft\Office\15.0\Word\InstallRoot') { '15.0' } else { '16.0' }
+$LT.OfficePolicyRoot = "Software\Policies\Microsoft\Office\$($LT.OfficeVersion)"
 
 $logDir = Join-Path $LT.DataDir 'logs'
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
@@ -38,7 +43,9 @@ if ([Threading.Thread]::CurrentThread.ApartmentState -ne 'STA') {
     Write-Host 'Restarting Lyons Tools in STA mode...'
     $langArg = if ($Lang) { " -Lang $Lang" } else { '' }
     if ($PSCommandPath) {
-        Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -STA -File `"$PSCommandPath`"$langArg"
+        # Loaded as a script block, not with -File: a Group Policy execution policy (AllSigned/Restricted)
+        # blocks unsigned script files but not commands.
+        Start-Process powershell.exe -ArgumentList "-NoProfile -STA -Command `"& ([scriptblock]::Create((Get-Content -LiteralPath '$PSCommandPath' -Raw)))$langArg`""
     }
     else {
         Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -STA -Command `"& ([scriptblock]::Create((irm '$($LT.SourceUrl)')))$langArg`""

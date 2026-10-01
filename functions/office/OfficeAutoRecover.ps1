@@ -59,8 +59,12 @@ function Set-LTOfficeUserPreference {
         [Parameter(Mandatory)][int]$Minutes,
         [switch]$Backup
     )
+    if (-not (Test-Path "Registry::HKEY_CLASSES_ROOT\$App.Application")) {
+        Write-LTLog "$App is not installed on this computer." "$App no está instalado en este equipo." "$App no està instal·lat en aquest equip." -Level Warn
+        return $false
+    }
     if ($App -eq 'PowerPoint') {
-        $key = 'HKCU:\Software\Microsoft\Office\16.0\PowerPoint\Options'
+        $key = "HKCU:\Software\Microsoft\Office\$($LT.OfficeVersion)\PowerPoint\Options"
         if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
         Set-ItemProperty -Path $key -Name 'SaveAutoRecoveryInfo' -Value 1 -Type DWord
         Set-ItemProperty -Path $key -Name 'FrequencyToSaveAutoRecoveryInfo' -Value $Minutes -Type DWord
@@ -68,13 +72,18 @@ function Set-LTOfficeUserPreference {
     }
     $com = $null
     try {
+        # A new hidden instance with alerts off, so no first-run or activation dialog can block it.
         if ($App -eq 'Word') {
             $com = New-Object -ComObject Word.Application -ErrorAction Stop
+            $com.Visible = $false
+            $com.DisplayAlerts = 0   # wdAlertsNone
             $com.Options.SaveInterval = $Minutes
             if ($Backup) { $com.Options.CreateBackup = $true }
         }
         else {
             $com = New-Object -ComObject Excel.Application -ErrorAction Stop
+            $com.Visible = $false
+            $com.DisplayAlerts = $false
             $com.AutoRecover.Enabled = $true
             $com.AutoRecover.Time = $Minutes
         }

@@ -145,25 +145,69 @@ function Save-LTFile {
     if (-not $FileName) { $FileName = [IO.Path]::GetFileName(([Uri]$Url).LocalPath) }
     $target = Join-Path (Get-LTWorkFolder) $FileName
     Write-LTLog "Downloading $Url" "Descargando $Url" "Descarregant $Url"
-    Invoke-WebRequest -Uri $Url -OutFile $target -UseBasicParsing -UserAgent $LT.UserAgent -ErrorAction Stop
+    # WebClient streams to disk. Invoke-WebRequest in Windows PowerShell 5.1 buffers the whole file in
+    # memory first, which is very slow for big installers (Adobe Reader is 800 MB).
+    $wc = New-Object Net.WebClient
+    try {
+        $wc.Headers['User-Agent'] = $LT.UserAgent
+        $wc.DownloadFile($Url, $target)
+    }
+    finally { $wc.Dispose() }
+    if (-not (Test-Path $target) -or (Get-Item $target).Length -eq 0) { throw "empty download: $Url" }
     $size = [math]::Round((Get-Item $target).Length / 1MB, 1)
     Write-LTLog "Downloaded: $target ($size MB)" "Descargado: $target ($size MB)" "Descarregat: $target ($size MB)"
     $target
 }
 
 function Test-LTSignature {
-    <# Logs the Authenticode signer of a downloaded file. Returns $true if the signature is valid. #>
-    param([Parameter(Mandatory)][string]$Path)
+    <#
+        Checks the Authenticode signature of a downloaded installer. Returns $true if it may be run.
+        -ExpectedPublisher: regex the signer's subject must match (protects against a swapped download).
+        Windows reports "UnknownError" when only the *timestamp* cannot be verified (e.g. the FNMT
+        Configurador is time-stamped by FNMT's own authority, which Windows does not trust). In that case
+        the file hash already matched, so the signer's own certificate chain is verified here instead and
+        the expected publisher is required.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [string]$ExpectedPublisher
+    )
     if ($Path -notmatch '\.(exe|msi)$') { return $true }
     $sig = Get-AuthenticodeSignature -FilePath $Path
-    $signer = $sig.SignerCertificate.Subject
+    $cert = $sig.SignerCertificate
+    $signer = if ($cert) { $cert.GetNameInfo('SimpleName', $false) } else { '' }
+
+    if ($ExpectedPublisher -and $cert -and $cert.Subject -notmatch $ExpectedPublisher) {
+        Write-LTLog "The installer is signed by '$signer', not by the expected publisher. It will not be run." `
+            "El instalador está firmado por '$signer', no por el editor esperado. No se ejecutará." `
+            "L'instal·lador està signat per '$signer', no per l'editor esperat. No s'executarà." -Level Error
+        return $false
+    }
     if ($sig.Status -eq 'Valid') {
         Write-LTLog "Valid digital signature: $signer" "Firma digital válida: $signer" "Signatura digital vàlida: $signer" -Level Ok
         return $true
     }
-    Write-LTLog "The installer does not have a valid digital signature ($($sig.Status))." `
-        "El instalador no tiene una firma digital válida ($($sig.Status))." `
-        "L'instal·lador no té una signatura digital vàlida ($($sig.Status))." -Level Warn
+    if ($sig.Status -eq 'UnknownError' -and $cert -and $ExpectedPublisher) {
+        $chain = New-Object Security.Cryptography.X509Certificates.X509Chain
+        $chain.ChainPolicy.RevocationMode = 'Online'
+        $chain.ChainPolicy.RevocationFlag = 'ExcludeRoot'
+        $ok = $chain.Build($cert)
+        if (-not $ok -and ($chain.ChainStatus | Where-Object { $_.Status -match 'Revocation' }) -and -not ($chain.ChainStatus | Where-Object { $_.Status -notmatch 'Revocation' })) {
+            # Revocation servers unreachable (offline / filtered network): accept the chain without it.
+            $chain.ChainPolicy.RevocationMode = 'NoCheck'
+            $ok = $chain.Build($cert)
+        }
+        if ($ok) {
+            Write-LTLog "Digital signature by '$signer' verified (its timestamp could not be checked by Windows)." `
+                "Firma digital de '$signer' verificada (Windows no ha podido comprobar su marca de tiempo)." `
+                "Signatura digital de '$signer' verificada (Windows no ha pogut comprovar la seva marca de temps)." -Level Ok
+            return $true
+        }
+    }
+    $msg = $sig.StatusMessage
+    Write-LTLog "The installer does not have a valid digital signature ($($sig.Status): $msg). It will not be run." `
+        "El instalador no tiene una firma digital válida ($($sig.Status): $msg). No se ejecutará." `
+        "L'instal·lador no té una signatura digital vàlida ($($sig.Status): $msg). No s'executarà." -Level Error
     return $false
 }
 
@@ -186,18 +230,36 @@ function Start-LTInstaller {
     }
     $name = [IO.Path]::GetFileName($Path)
     Write-LTLog "Running installer: $name $Arguments" "Ejecutando instalador: $name $Arguments" "Executant l'instal·lador: $name $Arguments"
-    try {
-        $splat = @{ FilePath = $file; Wait = $true; PassThru = $true; ErrorAction = 'Stop' }
-        if ($Arguments) { $splat.ArgumentList = $Arguments }
-        if (-not (Test-LTAdmin)) { $splat.Verb = 'RunAs' }
-        $p = Start-Process @splat
+    if ($LT.IsRdsHost) {
+        # Remote Desktop Session Host: software must be installed in "install mode" so that per-user
+        # settings are captured for every user (change user /install ... /execute). Needs admin rights,
+        # so the whole installer run goes through one elevated step.
+        Write-LTLog "Terminal server detected: installing in install mode for all users." `
+            "Servidor de terminales detectado: se instala en modo instalación para todos los usuarios." `
+            "Servidor de terminals detectat: s'instal·la en mode instal·lació per a tots els usuaris."
+        $argLine = if ($Arguments) { " -ArgumentList '$($Arguments.Replace("'", "''"))'" } else { '' }
+        $script = @"
+change.exe user /install | Out-Null
+try { `$p = Start-Process -FilePath '$file'$argLine -Wait -PassThru } finally { change.exe user /execute | Out-Null }
+exit `$p.ExitCode
+"@
+        $code = Invoke-LTElevated -Script $script
+        if ($code -eq -1) { return $false }
     }
-    catch {
-        $err = $_.Exception.Message
-        Write-LTLog "The installer could not be run: $err" "No se ha podido ejecutar el instalador: $err" "No s'ha pogut executar l'instal·lador: $err" -Level Error
-        return $false
+    else {
+        try {
+            $splat = @{ FilePath = $file; Wait = $true; PassThru = $true; ErrorAction = 'Stop' }
+            if ($Arguments) { $splat.ArgumentList = $Arguments }
+            if (-not (Test-LTAdmin)) { $splat.Verb = 'RunAs' }
+            $p = Start-Process @splat
+        }
+        catch {
+            $err = $_.Exception.Message
+            Write-LTLog "The installer could not be run: $err" "No se ha podido ejecutar el instalador: $err" "No s'ha pogut executar l'instal·lador: $err" -Level Error
+            return $false
+        }
+        $code = $p.ExitCode
     }
-    $code = $p.ExitCode
     switch ($code) {
         0       { Write-LTLog "Installation completed." "Instalación completada." "Instal·lació completada." -Level Ok; return $true }
         3010    { Write-LTLog "Installation completed. The computer must be restarted." "Instalación completada. Es necesario reiniciar el equipo." "Instal·lació completada. Cal reiniciar l'equip." -Level Ok; return $true }

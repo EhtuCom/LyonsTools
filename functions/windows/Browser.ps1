@@ -37,12 +37,12 @@ function Install-LTBrowserDirect {
     $url = switch ($Browser) {
         'Chrome' { 'https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi' }
         'Firefox' { "https://download.mozilla.org/?product=firefox-msi-latest-ssl&os=win64&lang=$lang" }
-        'Edge' { $null }
+        'Edge' { 'https://go.microsoft.com/fwlink/?LinkID=2093437' }   # Microsoft Edge Stable Enterprise x64 MSI
     }
-    if (-not $url) { Open-LTUrl 'https://www.microsoft.com/edge/business/download'; return $false }
+    $publisher = switch ($Browser) { 'Chrome' { 'Google' } 'Firefox' { 'Mozilla' } 'Edge' { 'Microsoft Corporation' } }
     try { $msi = Save-LTFile -Url $url -FileName "$Browser-x64.msi" }
     catch { $err = $_.Exception.Message; Write-LTLog "Download error: $err" "Error al descargar: $err" "Error en descarregar: $err" -Level Error; return $false }
-    if (-not (Test-LTSignature -Path $msi)) { return $false }
+    if (-not (Test-LTSignature -Path $msi -ExpectedPublisher $publisher)) { return $false }
     Start-LTInstaller -Path $msi
 }
 
@@ -79,7 +79,9 @@ function Set-LTDefaultBrowser {
 
     # Firefox can usually set itself as default (also on Windows 10 / Server).
     if ($Browser -eq 'Firefox') {
-        Start-Process -FilePath $b.Path -ArgumentList $b.Switch -Wait -ErrorAction SilentlyContinue
+        # Not -Wait: if Firefox decides to open a window it would never return.
+        $fx = Start-Process -FilePath $b.Path -ArgumentList $b.Switch -PassThru -ErrorAction SilentlyContinue
+        if ($fx) { [void]$fx.WaitForExit(20000) }
         Start-Sleep -Seconds 2
         if (Test-LTDefaultBrowser $b.ProgId) {
             Write-LTLog "Done: Firefox is now the default browser." "Hecho: Firefox es ahora el navegador predeterminado." "Fet: Firefox és ara el navegador predeterminat." -Level Ok

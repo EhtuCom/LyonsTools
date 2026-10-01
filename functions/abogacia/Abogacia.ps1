@@ -14,7 +14,7 @@ function Install-LTAcaMiddleware {
         Open-LTUrl 'https://www.abogacia.es/site/acaplus/guias-y-software-de-instalacion/'
         return
     }
-    if (-not (Test-LTSignature -Path $file)) { return }
+    if (-not (Test-LTSignature -Path $file -ExpectedPublisher 'BIT4ID')) { return }
     Write-LTLog "Follow the installer steps. Then connect the reader with the ACA card inserted." `
         "Sigue los pasos del instalador. Después, conecta el lector con la tarjeta ACA insertada." `
         "Segueix els passos de l'instal·lador. Després, connecta el lector amb la targeta ACA inserida."

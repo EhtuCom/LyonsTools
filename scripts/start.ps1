@@ -46,6 +46,18 @@ $LT.Settings = $null
 try { $LT.Settings = Get-Content -LiteralPath $LT.SettingsFile -Raw -ErrorAction Stop | ConvertFrom-Json } catch { }
 $LT.Lang = if ($Lang) { $Lang } elseif ($LT.Settings.lang -in 'en', 'es', 'ca') { $LT.Settings.lang } else { 'en' }
 
-# Environment: Windows 10/11 vs Windows Server, terminal server session, admin rights.
+# Windows PowerShell 5.1 (Windows 10 / Server 2016 or later) is required: 'class ::new()' syntax, Expand-Archive...
+if ($PSVersionTable.PSVersion.Major -lt 5) {
+    Write-Host "Lyons Tools needs Windows PowerShell 5.1 (Windows 10, Windows Server 2016 or later). This computer has PowerShell $($PSVersionTable.PSVersion)." -ForegroundColor Red
+    return
+}
+# TLS 1.2 for every download (older Windows 10 / Server 2016 default to TLS 1.0); TLS 1.3 when the OS supports it.
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Enum]::Parse([Net.SecurityProtocolType], 'Tls13') } catch { }
+
+# Environment: Windows 10/11 vs Windows Server, Remote Desktop Session Host, remote session, admin rights.
+$LT.Build = [Environment]::OSVersion.Version.Build
 $LT.IsServer = (Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue).ProductType -ne 1
-$LT.IsRemoteSession = [bool]($env:SESSIONNAME -like 'RDP-*')
+# TSAppCompat = 1 on a Remote Desktop Session Host (terminal server); installers must run in "install mode" there.
+$LT.IsRdsHost = $LT.IsServer -and ((Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' -ErrorAction SilentlyContinue).TSAppCompat -eq 1)
+$LT.IsRemoteSession = [bool]($env:SESSIONNAME -match '^(RDP|ICA)-')

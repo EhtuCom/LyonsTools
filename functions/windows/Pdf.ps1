@@ -64,7 +64,7 @@ function Install-LTAdobeReader {
         Open-LTUrl 'https://get.adobe.com/reader/enterprise/'
         return
     }
-    if (-not (Test-LTSignature -Path $file)) { return }
+    if (-not (Test-LTSignature -Path $file -ExpectedPublisher 'Adobe')) { return }
     # Adobe's documented switches: progress bar only, no restart.
     [void](Start-LTInstaller -Path $file -Arguments '/sPB /rs /msi')
 }

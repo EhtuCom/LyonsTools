@@ -15,7 +15,7 @@ function Install-LTFnmtConfigurator {
     }
     try { $file = Save-LTFile -Url $url }
     catch { $err = $_.Exception.Message; Write-LTLog "Download error: $err" "Error al descargar: $err" "Error en descarregar: $err" -Level Error; return }
-    if (-not (Test-LTSignature -Path $file)) { return }
+    if (-not (Test-LTSignature -Path $file -ExpectedPublisher 'Nacional de Moneda y Timbre')) { return }
     Write-LTLog "Follow the steps of the FNMT Configurator installer." "Sigue los pasos del instalador del Configurador FNMT." "Segueix els passos de l'instal·lador del Configurador FNMT."
     [void](Start-LTInstaller -Path $file)
 }
@@ -217,7 +217,7 @@ function Install-LTTcatMiddleware {
         Open-LTUrl 'https://suport.aoc.cat/ca-es/article/?servei=tcat&id=KA-07251_instal-lacio-del-programari-per-a-l-us-de-la-t-cat-en-targeta'
         return
     }
-    if (-not (Test-LTSignature -Path $file)) { return }
+    if (-not (Test-LTSignature -Path $file -ExpectedPublisher 'BIT4ID')) { return }
     Write-LTLog "Follow the installer steps. You will need a card reader connected to use the T-CAT." `
         "Sigue los pasos del instalador. Necesitarás un lector de tarjetas conectado para usar la T-CAT." `
         "Segueix els passos de l'instal·lador. Necessitaràs un lector de targetes connectat per fer servir la T-CAT."
@@ -289,7 +289,7 @@ function Install-LTAutofirma {
     Expand-Archive -Path $zip -DestinationPath $dir -Force
     $exe = Get-ChildItem -Path $dir -Filter '*.exe' -Recurse | Select-Object -First 1
     if (-not $exe) { Write-LTLog "The Autofirma ZIP does not contain an installer." "El ZIP de Autofirma no contiene ningún instalador." "El ZIP d'Autofirma no conté cap instal·lador." -Level Error; return }
-    if (-not (Test-LTSignature -Path $exe.FullName)) { return }
+    if (-not (Test-LTSignature -Path $exe.FullName -ExpectedPublisher 'ADMINISTRACION DIGITAL|Gobierno de Espa|SECRETARIA GENERAL')) { return }
 
     # Silent mode shows a blocking dialog if the same version is already installed, so only use /S on clean machines.
     $arguments = if ($installed) { $null } else { '/S' }
@@ -315,7 +315,7 @@ function Install-LTSignador {
             Open-LTUrl 'https://signador.aoc.cat/signador/installNativa'
             return
         }
-        if (-not (Test-LTSignature -Path $exe)) { return }
+        if (-not (Test-LTSignature -Path $exe -ExpectedPublisher 'Consorci Administraci')) { return }
         Write-LTLog "Installing the Signador for your user only. Follow the installer steps." `
             "Instalando el Signador solo para tu usuario. Sigue los pasos del instalador." `
             "Instal·lant el Signador només per al teu usuari. Segueix els passos de l'instal·lador."
@@ -345,7 +345,7 @@ function Install-LTSignador {
         Open-LTUrl 'https://signador.aoc.cat/signador/installNativa'
         return
     }
-    if (-not (Test-LTSignature -Path $msi)) { return }
+    if (-not (Test-LTSignature -Path $msi -ExpectedPublisher 'Consorci Administraci')) { return }
 
     $log = Join-Path (Get-LTWorkFolder) 'signador-install.log'
     $script = @"

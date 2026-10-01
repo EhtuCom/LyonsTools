@@ -1,9 +1,9 @@
 <#
-    Lyons Tools 1.3.5 - utilidades de Windows, Office, Java y firma digital
+    Lyons Tools 1.4.0 - utilidades de Windows, Office, Java y firma digital
     https://github.com/EhtuCom/LyonsTools  |  https://ehtu.com
 
     GENERATED FILE - DO NOT EDIT. Edit the sources and run Compile.ps1.
-    Built 2026-10-01 08:49
+    Built 2026-10-01 08:57
 #>
 
 <#
@@ -38,7 +38,7 @@ param(
 )
 
 $LT = [hashtable]::Synchronized(@{})
-$LT.Version = '1.3.5'
+$LT.Version = '1.4.0'
 $LT.Repo = 'EhtuCom/LyonsTools'
 $LT.SourceUrl = 'https://raw.githubusercontent.com/EhtuCom/LyonsTools/main/lyonstools.ps1'
 # A regular browser user agent: some official sites (abogacia.es) block unknown clients.
@@ -54,9 +54,21 @@ $LT.Settings = $null
 try { $LT.Settings = Get-Content -LiteralPath $LT.SettingsFile -Raw -ErrorAction Stop | ConvertFrom-Json } catch { }
 $LT.Lang = if ($Lang) { $Lang } elseif ($LT.Settings.lang -in 'en', 'es', 'ca') { $LT.Settings.lang } else { 'en' }
 
-# Environment: Windows 10/11 vs Windows Server, terminal server session, admin rights.
+# Windows PowerShell 5.1 (Windows 10 / Server 2016 or later) is required: 'class ::new()' syntax, Expand-Archive...
+if ($PSVersionTable.PSVersion.Major -lt 5) {
+    Write-Host "Lyons Tools needs Windows PowerShell 5.1 (Windows 10, Windows Server 2016 or later). This computer has PowerShell $($PSVersionTable.PSVersion)." -ForegroundColor Red
+    return
+}
+# TLS 1.2 for every download (older Windows 10 / Server 2016 default to TLS 1.0); TLS 1.3 when the OS supports it.
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Enum]::Parse([Net.SecurityProtocolType], 'Tls13') } catch { }
+
+# Environment: Windows 10/11 vs Windows Server, Remote Desktop Session Host, remote session, admin rights.
+$LT.Build = [Environment]::OSVersion.Version.Build
 $LT.IsServer = (Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue).ProductType -ne 1
-$LT.IsRemoteSession = [bool]($env:SESSIONNAME -like 'RDP-*')
+# TSAppCompat = 1 on a Remote Desktop Session Host (terminal server); installers must run in "install mode" there.
+$LT.IsRdsHost = $LT.IsServer -and ((Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' -ErrorAction SilentlyContinue).TSAppCompat -eq 1)
+$LT.IsRemoteSession = [bool]($env:SESSIONNAME -match '^(RDP|ICA)-')
 
 
 # ---- functions\abogacia\Abogacia.ps1 ----
@@ -76,7 +88,7 @@ function Install-LTAcaMiddleware {
         Open-LTUrl 'https://www.abogacia.es/site/acaplus/guias-y-software-de-instalacion/'
         return
     }
-    if (-not (Test-LTSignature -Path $file)) { return }
+    if (-not (Test-LTSignature -Path $file -ExpectedPublisher 'BIT4ID')) { return }
     Write-LTLog "Follow the installer steps. Then connect the reader with the ACA card inserted." `
         "Sigue los pasos del instalador. Despu$([char]0x00E9)s, conecta el lector con la tarjeta ACA insertada." `
         "Segueix els passos de l'instal$([char]0x00B7)lador. Despr$([char]0x00E9)s, connecta el lector amb la targeta ACA inserida."
@@ -253,25 +265,69 @@ function Save-LTFile {
     if (-not $FileName) { $FileName = [IO.Path]::GetFileName(([Uri]$Url).LocalPath) }
     $target = Join-Path (Get-LTWorkFolder) $FileName
     Write-LTLog "Downloading $Url" "Descargando $Url" "Descarregant $Url"
-    Invoke-WebRequest -Uri $Url -OutFile $target -UseBasicParsing -UserAgent $LT.UserAgent -ErrorAction Stop
+    # WebClient streams to disk. Invoke-WebRequest in Windows PowerShell 5.1 buffers the whole file in
+    # memory first, which is very slow for big installers (Adobe Reader is 800 MB).
+    $wc = New-Object Net.WebClient
+    try {
+        $wc.Headers['User-Agent'] = $LT.UserAgent
+        $wc.DownloadFile($Url, $target)
+    }
+    finally { $wc.Dispose() }
+    if (-not (Test-Path $target) -or (Get-Item $target).Length -eq 0) { throw "empty download: $Url" }
     $size = [math]::Round((Get-Item $target).Length / 1MB, 1)
     Write-LTLog "Downloaded: $target ($size MB)" "Descargado: $target ($size MB)" "Descarregat: $target ($size MB)"
     $target
 }
 
 function Test-LTSignature {
-    <# Logs the Authenticode signer of a downloaded file. Returns $true if the signature is valid. #>
-    param([Parameter(Mandatory)][string]$Path)
+    <#
+        Checks the Authenticode signature of a downloaded installer. Returns $true if it may be run.
+        -ExpectedPublisher: regex the signer's subject must match (protects against a swapped download).
+        Windows reports "UnknownError" when only the *timestamp* cannot be verified (e.g. the FNMT
+        Configurador is time-stamped by FNMT's own authority, which Windows does not trust). In that case
+        the file hash already matched, so the signer's own certificate chain is verified here instead and
+        the expected publisher is required.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [string]$ExpectedPublisher
+    )
     if ($Path -notmatch '\.(exe|msi)$') { return $true }
     $sig = Get-AuthenticodeSignature -FilePath $Path
-    $signer = $sig.SignerCertificate.Subject
+    $cert = $sig.SignerCertificate
+    $signer = if ($cert) { $cert.GetNameInfo('SimpleName', $false) } else { '' }
+
+    if ($ExpectedPublisher -and $cert -and $cert.Subject -notmatch $ExpectedPublisher) {
+        Write-LTLog "The installer is signed by '$signer', not by the expected publisher. It will not be run." `
+            "El instalador est$([char]0x00E1) firmado por '$signer', no por el editor esperado. No se ejecutar$([char]0x00E1)." `
+            "L'instal$([char]0x00B7)lador est$([char]0x00E0) signat per '$signer', no per l'editor esperat. No s'executar$([char]0x00E0)." -Level Error
+        return $false
+    }
     if ($sig.Status -eq 'Valid') {
         Write-LTLog "Valid digital signature: $signer" "Firma digital v$([char]0x00E1)lida: $signer" "Signatura digital v$([char]0x00E0)lida: $signer" -Level Ok
         return $true
     }
-    Write-LTLog "The installer does not have a valid digital signature ($($sig.Status))." `
-        "El instalador no tiene una firma digital v$([char]0x00E1)lida ($($sig.Status))." `
-        "L'instal$([char]0x00B7)lador no t$([char]0x00E9) una signatura digital v$([char]0x00E0)lida ($($sig.Status))." -Level Warn
+    if ($sig.Status -eq 'UnknownError' -and $cert -and $ExpectedPublisher) {
+        $chain = New-Object Security.Cryptography.X509Certificates.X509Chain
+        $chain.ChainPolicy.RevocationMode = 'Online'
+        $chain.ChainPolicy.RevocationFlag = 'ExcludeRoot'
+        $ok = $chain.Build($cert)
+        if (-not $ok -and ($chain.ChainStatus | Where-Object { $_.Status -match 'Revocation' }) -and -not ($chain.ChainStatus | Where-Object { $_.Status -notmatch 'Revocation' })) {
+            # Revocation servers unreachable (offline / filtered network): accept the chain without it.
+            $chain.ChainPolicy.RevocationMode = 'NoCheck'
+            $ok = $chain.Build($cert)
+        }
+        if ($ok) {
+            Write-LTLog "Digital signature by '$signer' verified (its timestamp could not be checked by Windows)." `
+                "Firma digital de '$signer' verificada (Windows no ha podido comprobar su marca de tiempo)." `
+                "Signatura digital de '$signer' verificada (Windows no ha pogut comprovar la seva marca de temps)." -Level Ok
+            return $true
+        }
+    }
+    $msg = $sig.StatusMessage
+    Write-LTLog "The installer does not have a valid digital signature ($($sig.Status): $msg). It will not be run." `
+        "El instalador no tiene una firma digital v$([char]0x00E1)lida ($($sig.Status): $msg). No se ejecutar$([char]0x00E1)." `
+        "L'instal$([char]0x00B7)lador no t$([char]0x00E9) una signatura digital v$([char]0x00E0)lida ($($sig.Status): $msg). No s'executar$([char]0x00E0)." -Level Error
     return $false
 }
 
@@ -294,18 +350,36 @@ function Start-LTInstaller {
     }
     $name = [IO.Path]::GetFileName($Path)
     Write-LTLog "Running installer: $name $Arguments" "Ejecutando instalador: $name $Arguments" "Executant l'instal$([char]0x00B7)lador: $name $Arguments"
-    try {
-        $splat = @{ FilePath = $file; Wait = $true; PassThru = $true; ErrorAction = 'Stop' }
-        if ($Arguments) { $splat.ArgumentList = $Arguments }
-        if (-not (Test-LTAdmin)) { $splat.Verb = 'RunAs' }
-        $p = Start-Process @splat
+    if ($LT.IsRdsHost) {
+        # Remote Desktop Session Host: software must be installed in "install mode" so that per-user
+        # settings are captured for every user (change user /install ... /execute). Needs admin rights,
+        # so the whole installer run goes through one elevated step.
+        Write-LTLog "Terminal server detected: installing in install mode for all users." `
+            "Servidor de terminales detectado: se instala en modo instalaci$([char]0x00F3)n para todos los usuarios." `
+            "Servidor de terminals detectat: s'instal$([char]0x00B7)la en mode instal$([char]0x00B7)laci$([char]0x00F3) per a tots els usuaris."
+        $argLine = if ($Arguments) { " -ArgumentList '$($Arguments.Replace("'", "''"))'" } else { '' }
+        $script = @"
+change.exe user /install | Out-Null
+try { `$p = Start-Process -FilePath '$file'$argLine -Wait -PassThru } finally { change.exe user /execute | Out-Null }
+exit `$p.ExitCode
+"@
+        $code = Invoke-LTElevated -Script $script
+        if ($code -eq -1) { return $false }
     }
-    catch {
-        $err = $_.Exception.Message
-        Write-LTLog "The installer could not be run: $err" "No se ha podido ejecutar el instalador: $err" "No s'ha pogut executar l'instal$([char]0x00B7)lador: $err" -Level Error
-        return $false
+    else {
+        try {
+            $splat = @{ FilePath = $file; Wait = $true; PassThru = $true; ErrorAction = 'Stop' }
+            if ($Arguments) { $splat.ArgumentList = $Arguments }
+            if (-not (Test-LTAdmin)) { $splat.Verb = 'RunAs' }
+            $p = Start-Process @splat
+        }
+        catch {
+            $err = $_.Exception.Message
+            Write-LTLog "The installer could not be run: $err" "No se ha podido ejecutar el instalador: $err" "No s'ha pogut executar l'instal$([char]0x00B7)lador: $err" -Level Error
+            return $false
+        }
+        $code = $p.ExitCode
     }
-    $code = $p.ExitCode
     switch ($code) {
         0       { Write-LTLog "Installation completed." "Instalaci$([char]0x00F3)n completada." "Instal$([char]0x00B7)laci$([char]0x00F3) completada." -Level Ok; return $true }
         3010    { Write-LTLog "Installation completed. The computer must be restarted." "Instalaci$([char]0x00F3)n completada. Es necesario reiniciar el equipo." "Instal$([char]0x00B7)laci$([char]0x00F3) completada. Cal reiniciar l'equip." -Level Ok; return $true }
@@ -391,7 +465,7 @@ function Install-LTFnmtConfigurator {
     }
     try { $file = Save-LTFile -Url $url }
     catch { $err = $_.Exception.Message; Write-LTLog "Download error: $err" "Error al descargar: $err" "Error en descarregar: $err" -Level Error; return }
-    if (-not (Test-LTSignature -Path $file)) { return }
+    if (-not (Test-LTSignature -Path $file -ExpectedPublisher 'Nacional de Moneda y Timbre')) { return }
     Write-LTLog "Follow the steps of the FNMT Configurator installer." "Sigue los pasos del instalador del Configurador FNMT." "Segueix els passos de l'instal$([char]0x00B7)lador del Configurador FNMT."
     [void](Start-LTInstaller -Path $file)
 }
@@ -593,7 +667,7 @@ function Install-LTTcatMiddleware {
         Open-LTUrl 'https://suport.aoc.cat/ca-es/article/?servei=tcat&id=KA-07251_instal-lacio-del-programari-per-a-l-us-de-la-t-cat-en-targeta'
         return
     }
-    if (-not (Test-LTSignature -Path $file)) { return }
+    if (-not (Test-LTSignature -Path $file -ExpectedPublisher 'BIT4ID')) { return }
     Write-LTLog "Follow the installer steps. You will need a card reader connected to use the T-CAT." `
         "Sigue los pasos del instalador. Necesitar$([char]0x00E1)s un lector de tarjetas conectado para usar la T-CAT." `
         "Segueix els passos de l'instal$([char]0x00B7)lador. Necessitar$([char]0x00E0)s un lector de targetes connectat per fer servir la T-CAT."
@@ -665,7 +739,7 @@ function Install-LTAutofirma {
     Expand-Archive -Path $zip -DestinationPath $dir -Force
     $exe = Get-ChildItem -Path $dir -Filter '*.exe' -Recurse | Select-Object -First 1
     if (-not $exe) { Write-LTLog "The Autofirma ZIP does not contain an installer." "El ZIP de Autofirma no contiene ning$([char]0x00FA)n instalador." "El ZIP d'Autofirma no cont$([char]0x00E9) cap instal$([char]0x00B7)lador." -Level Error; return }
-    if (-not (Test-LTSignature -Path $exe.FullName)) { return }
+    if (-not (Test-LTSignature -Path $exe.FullName -ExpectedPublisher 'ADMINISTRACION DIGITAL|Gobierno de Espa|SECRETARIA GENERAL')) { return }
 
     # Silent mode shows a blocking dialog if the same version is already installed, so only use /S on clean machines.
     $arguments = if ($installed) { $null } else { '/S' }
@@ -691,7 +765,7 @@ function Install-LTSignador {
             Open-LTUrl 'https://signador.aoc.cat/signador/installNativa'
             return
         }
-        if (-not (Test-LTSignature -Path $exe)) { return }
+        if (-not (Test-LTSignature -Path $exe -ExpectedPublisher 'Consorci Administraci')) { return }
         Write-LTLog "Installing the Signador for your user only. Follow the installer steps." `
             "Instalando el Signador solo para tu usuario. Sigue los pasos del instalador." `
             "Instal$([char]0x00B7)lant el Signador nom$([char]0x00E9)s per al teu usuari. Segueix els passos de l'instal$([char]0x00B7)lador."
@@ -721,7 +795,7 @@ function Install-LTSignador {
         Open-LTUrl 'https://signador.aoc.cat/signador/installNativa'
         return
     }
-    if (-not (Test-LTSignature -Path $msi)) { return }
+    if (-not (Test-LTSignature -Path $msi -ExpectedPublisher 'Consorci Administraci')) { return }
 
     $log = Join-Path (Get-LTWorkFolder) 'signador-install.log'
     $script = @"
@@ -819,7 +893,7 @@ function Install-LTJavaTemurin {
         if (-not (Install-LTWinget -Id "EclipseAdoptium.Temurin.$lts.JRE")) { Open-LTUrl 'https://adoptium.net/temurin/releases/' }
         return
     }
-    if (-not (Test-LTSignature -Path $file)) { return }
+    if (-not (Test-LTSignature -Path $file -ExpectedPublisher 'Eclipse')) { return }
     # FeatureEnvironment/FeatureJavaHome set PATH and JAVA_HOME, FeatureJarFileRunWith opens .jar files,
     # FeatureOracleJavaSoft writes the HKLM\SOFTWARE\JavaSoft keys that older apps look for.
     [void](Start-LTInstaller -Path $file -Arguments 'ADDLOCAL=FeatureMain,FeatureEnvironment,FeatureJarFileRunWith,FeatureJavaHome,FeatureOracleJavaSoft /passive /norestart')
@@ -840,7 +914,7 @@ function Install-LTJavaOracle8 {
             Select-Object -First 1
         if (-not $link) { throw 'link not found' }
         $file = Save-LTFile -Url ([Net.WebUtility]::HtmlDecode($link.href)) -FileName 'jre8-windows-x64.exe'
-        if (-not (Test-LTSignature -Path $file)) { return }
+        if (-not (Test-LTSignature -Path $file -ExpectedPublisher 'Oracle')) { return }
         [void](Start-LTInstaller -Path $file -Arguments '/s')
     }
     catch {
@@ -941,8 +1015,12 @@ function Set-LTOfficeUserPreference {
         [Parameter(Mandatory)][int]$Minutes,
         [switch]$Backup
     )
+    if (-not (Test-Path "Registry::HKEY_CLASSES_ROOT\$App.Application")) {
+        Write-LTLog "$App is not installed on this computer." "$App no est$([char]0x00E1) instalado en este equipo." "$App no est$([char]0x00E0) instal$([char]0x00B7)lat en aquest equip." -Level Warn
+        return $false
+    }
     if ($App -eq 'PowerPoint') {
-        $key = 'HKCU:\Software\Microsoft\Office\16.0\PowerPoint\Options'
+        $key = "HKCU:\Software\Microsoft\Office\$($LT.OfficeVersion)\PowerPoint\Options"
         if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
         Set-ItemProperty -Path $key -Name 'SaveAutoRecoveryInfo' -Value 1 -Type DWord
         Set-ItemProperty -Path $key -Name 'FrequencyToSaveAutoRecoveryInfo' -Value $Minutes -Type DWord
@@ -950,13 +1028,18 @@ function Set-LTOfficeUserPreference {
     }
     $com = $null
     try {
+        # A new hidden instance with alerts off, so no first-run or activation dialog can block it.
         if ($App -eq 'Word') {
             $com = New-Object -ComObject Word.Application -ErrorAction Stop
+            $com.Visible = $false
+            $com.DisplayAlerts = 0   # wdAlertsNone
             $com.Options.SaveInterval = $Minutes
             if ($Backup) { $com.Options.CreateBackup = $true }
         }
         else {
             $com = New-Object -ComObject Excel.Application -ErrorAction Stop
+            $com.Visible = $false
+            $com.DisplayAlerts = $false
             $com.AutoRecover.Enabled = $true
             $com.AutoRecover.Time = $Minutes
         }
@@ -1243,12 +1326,12 @@ function Install-LTBrowserDirect {
     $url = switch ($Browser) {
         'Chrome' { 'https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi' }
         'Firefox' { "https://download.mozilla.org/?product=firefox-msi-latest-ssl&os=win64&lang=$lang" }
-        'Edge' { $null }
+        'Edge' { 'https://go.microsoft.com/fwlink/?LinkID=2093437' }   # Microsoft Edge Stable Enterprise x64 MSI
     }
-    if (-not $url) { Open-LTUrl 'https://www.microsoft.com/edge/business/download'; return $false }
+    $publisher = switch ($Browser) { 'Chrome' { 'Google' } 'Firefox' { 'Mozilla' } 'Edge' { 'Microsoft Corporation' } }
     try { $msi = Save-LTFile -Url $url -FileName "$Browser-x64.msi" }
     catch { $err = $_.Exception.Message; Write-LTLog "Download error: $err" "Error al descargar: $err" "Error en descarregar: $err" -Level Error; return $false }
-    if (-not (Test-LTSignature -Path $msi)) { return $false }
+    if (-not (Test-LTSignature -Path $msi -ExpectedPublisher $publisher)) { return $false }
     Start-LTInstaller -Path $msi
 }
 
@@ -1285,7 +1368,9 @@ function Set-LTDefaultBrowser {
 
     # Firefox can usually set itself as default (also on Windows 10 / Server).
     if ($Browser -eq 'Firefox') {
-        Start-Process -FilePath $b.Path -ArgumentList $b.Switch -Wait -ErrorAction SilentlyContinue
+        # Not -Wait: if Firefox decides to open a window it would never return.
+        $fx = Start-Process -FilePath $b.Path -ArgumentList $b.Switch -PassThru -ErrorAction SilentlyContinue
+        if ($fx) { [void]$fx.WaitForExit(20000) }
         Start-Sleep -Seconds 2
         if (Test-LTDefaultBrowser $b.ProgId) {
             Write-LTLog "Done: Firefox is now the default browser." "Hecho: Firefox es ahora el navegador predeterminado." "Fet: Firefox $([char]0x00E9)s ara el navegador predeterminat." -Level Ok
@@ -1438,7 +1523,7 @@ function Install-LTAdobeReader {
         Open-LTUrl 'https://get.adobe.com/reader/enterprise/'
         return
     }
-    if (-not (Test-LTSignature -Path $file)) { return }
+    if (-not (Test-LTSignature -Path $file -ExpectedPublisher 'Adobe')) { return }
     # Adobe's documented switches: progress bar only, no restart.
     [void](Start-LTInstaller -Path $file -Arguments '/sPB /rs /msi')
 }
@@ -1655,6 +1740,13 @@ function Enable-LTFileExtensions {
 }
 
 function Enable-LTClipboardHistory {
+    # Clipboard history exists since Windows 10 1809 / Windows Server 2019 (build 17763).
+    if ($LT.Build -lt 17763) {
+        Write-LTLog "Clipboard history is not available on this Windows version (it needs Windows 10 1809 / Server 2019 or later)." `
+            "El historial del portapapeles no est$([char]0x00E1) disponible en esta versi$([char]0x00F3)n de Windows (necesita Windows 10 1809 / Server 2019 o posterior)." `
+            "L'historial del porta-retalls no est$([char]0x00E0) disponible en aquesta versi$([char]0x00F3) de Windows (necessita Windows 10 1809 / Server 2019 o posterior)." -Level Warn
+        return
+    }
     $key = 'HKCU:\Software\Microsoft\Clipboard'
     if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
     Set-ItemProperty -Path $key -Name 'EnableClipboardHistory' -Value 1 -Type DWord
@@ -1706,11 +1798,12 @@ function Start-LTQuickAssist {
     Write-LTLog "Opening Quick Assist. Choose 'Help someone' or enter the code the technician gives you." `
         "Abriendo Asistencia r$([char]0x00E1)pida. Elige 'Ayudar a alguien' o introduce el c$([char]0x00F3)digo que te d$([char]0x00E9) el t$([char]0x00E9)cnico." `
         "Obrint l'Assist$([char]0x00E8)ncia r$([char]0x00E0)pida. Tria 'Ajudar alg$([char]0x00FA)' o introdueix el codi que et doni el t$([char]0x00E8)cnic."
-    try { Start-Process 'ms-quick-assist:' -ErrorAction Stop }
-    catch {
-        Write-LTLog "Quick Assist is not installed. Opening Microsoft Store..." "Asistencia r$([char]0x00E1)pida no est$([char]0x00E1) instalada. Abriendo Microsoft Store..." "L'Assist$([char]0x00E8)ncia r$([char]0x00E0)pida no est$([char]0x00E0) instal$([char]0x00B7)lada. Obrint Microsoft Store..." -Level Warn
-        Start-Process 'ms-windows-store://pdp/?ProductId=9P7BP5VNWKX5'
-    }
+    # Store app (Windows 10 2004+ / 11), then the classic built-in quickassist.exe (older Windows 10), then the Store page.
+    $classic = Join-Path $env:SystemRoot 'System32\quickassist.exe'
+    try { Start-Process 'ms-quick-assist:' -ErrorAction Stop; return } catch { }
+    if (Test-Path $classic) { Start-Process $classic; return }
+    Write-LTLog "Quick Assist is not installed. Opening Microsoft Store..." "Asistencia r$([char]0x00E1)pida no est$([char]0x00E1) instalada. Abriendo Microsoft Store..." "L'Assist$([char]0x00E8)ncia r$([char]0x00E0)pida no est$([char]0x00E0) instal$([char]0x00B7)lada. Obrint Microsoft Store..." -Level Warn
+    Start-Process 'ms-windows-store://pdp/?ProductId=9P7BP5VNWKX5'
 }
 
 function Open-LTWindowsUpdate {
@@ -1783,7 +1876,7 @@ $LTConfigJson = @'
 {
   "app": {
     "name": "Lyons Tools",
-    "version": "1.3.5",
+    "version": "1.4.0",
     "repo": "EhtuCom/LyonsTools",
     "publisher": "ehtu.com",
     "publisherUrl": "https://ehtu.com",
@@ -2631,6 +2724,11 @@ foreach ($tab in $LT.Config.tabs) {
     }
 }
 $LT.CanElevate = Test-LTCanElevate
+# Office 2016/2019/2021/2024/365 use 16.0; Office 2013 uses 15.0. Policies follow the same version.
+$LT.OfficeVersion = if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Office\16.0\Common\InstallRoot') { '16.0' }
+elseif (Test-Path 'HKLM:\SOFTWARE\Microsoft\Office\15.0\Common\InstallRoot') { '15.0' }
+elseif (Test-Path 'HKLM:\SOFTWARE\Microsoft\Office\15.0\Word\InstallRoot') { '15.0' } else { '16.0' }
+$LT.OfficePolicyRoot = "Software\Policies\Microsoft\Office\$($LT.OfficeVersion)"
 
 $logDir = Join-Path $LT.DataDir 'logs'
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
@@ -2661,7 +2759,9 @@ if ([Threading.Thread]::CurrentThread.ApartmentState -ne 'STA') {
     Write-Host 'Restarting Lyons Tools in STA mode...'
     $langArg = if ($Lang) { " -Lang $Lang" } else { '' }
     if ($PSCommandPath) {
-        Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -STA -File `"$PSCommandPath`"$langArg"
+        # Loaded as a script block, not with -File: a Group Policy execution policy (AllSigned/Restricted)
+        # blocks unsigned script files but not commands.
+        Start-Process powershell.exe -ArgumentList "-NoProfile -STA -Command `"& ([scriptblock]::Create((Get-Content -LiteralPath '$PSCommandPath' -Raw)))$langArg`""
     }
     else {
         Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -STA -Command `"& ([scriptblock]::Create((irm '$($LT.SourceUrl)')))$langArg`""
