@@ -1,0 +1,245 @@
+{
+  "app": {
+    "name": "Lyons Tools",
+    "version": "1.0.0",
+    "repo": "EhtuCom/LyonsTools",
+    "publisher": "ehtu.com",
+    "publisherUrl": "https://ehtu.com"
+  },
+  "tabs": [
+    {
+      "title": "Office",
+      "intro": "Los ajustes de autoguardado se aplican como directiva para tu usuario (Windows pedirá permiso de administrador una vez) y Office no los puede deshacer. Se activan al volver a abrir Word, Excel o PowerPoint.",
+      "minutesInput": 5,
+      "sections": [
+        {
+          "title": "Autoguardado y recuperación",
+          "items": [
+            {
+              "id": "word-autorecover",
+              "label": "Autoguardado en Word cada N minutos",
+              "description": "Activa la Autorrecuperación de Word y guarda la información cada N minutos (Archivo > Opciones > Guardar).",
+              "action": "Set-LTWordAutoRecover",
+              "usesMinutes": true
+            },
+            {
+              "id": "excel-autorecover",
+              "label": "Autoguardado en Excel cada N minutos",
+              "description": "Activa la Autorrecuperación de Excel y guarda la información cada N minutos.",
+              "action": "Set-LTExcelAutoRecover",
+              "usesMinutes": true
+            },
+            {
+              "id": "powerpoint-autorecover",
+              "label": "Autoguardado en PowerPoint cada N minutos",
+              "description": "Activa la Autorrecuperación de PowerPoint y guarda la información cada N minutos.",
+              "action": "Set-LTPowerPointAutoRecover",
+              "usesMinutes": true
+            },
+            {
+              "id": "office-crash-protection",
+              "label": "Protección completa contra cierres inesperados",
+              "description": "Word, Excel y PowerPoint: autorrecuperación cada N minutos, conservar la última versión si se cierra sin guardar, y copia de seguridad automática (.wbk) de cada documento de Word.",
+              "action": "Enable-LTOfficeCrashProtection",
+              "usesMinutes": true
+            },
+            {
+              "id": "office-find-recoverable",
+              "label": "Buscar documentos recuperables",
+              "description": "Busca archivos de autorrecuperación, copias de seguridad y documentos sin guardar de los últimos 30 días y abre la carpeta.",
+              "action": "Find-LTOfficeRecoverableFiles"
+            },
+            {
+              "id": "office-autorecover-reset",
+              "label": "Quitar los ajustes de autoguardado de Lyons Tools",
+              "description": "Devuelve el control a Archivo > Opciones > Guardar (los ajustes anteriores quedan fijados y no se pueden cambiar desde Office).",
+              "action": "Reset-LTOfficeAutoRecover"
+            }
+          ]
+        },
+        {
+          "title": "Mantenimiento",
+          "items": [
+            {
+              "id": "office-info",
+              "label": "Ver versión de Office y ajustes de autoguardado",
+              "description": "Muestra la versión, el canal de actualización y la configuración actual de autorrecuperación.",
+              "action": "Get-LTOfficeInfo"
+            },
+            {
+              "id": "office-update",
+              "label": "Actualizar Office ahora",
+              "description": "Busca e instala las actualizaciones de Microsoft 365 / Office.",
+              "action": "Update-LTOffice"
+            },
+            {
+              "id": "office-repair",
+              "label": "Reparación rápida de Office",
+              "description": "Repara Office sin conexión a Internet. Útil si Word o Excel se cierran solos o fallan al abrir. Cierra todos los programas de Office antes.",
+              "action": "Repair-LTOffice"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Firma digital",
+      "intro": "Herramientas para certificados digitales de la FNMT, Autofirma y el Signador del Consorci AOC.",
+      "sections": [
+        {
+          "title": "Certificados",
+          "items": [
+            {
+              "id": "fnmt-configurador",
+              "label": "Descargar e instalar el Configurador FNMT",
+              "description": "Necesario para solicitar y descargar el certificado de persona física o de representante de la FNMT.",
+              "action": "Install-LTFnmtConfigurator"
+            },
+            {
+              "id": "fnmt-root-certs",
+              "label": "Instalar certificados raíz de la FNMT",
+              "description": "Instala la AC Raíz FNMT-RCM y las autoridades intermedias en el almacén de Windows (lo usan Edge, Chrome y Office).",
+              "action": "Install-LTFnmtRootCertificates"
+            },
+            {
+              "id": "certs-list",
+              "label": "Ver mis certificados digitales y su caducidad",
+              "description": "Lista los certificados personales instalados y avisa de los que caducan en menos de 60 días.",
+              "action": "Get-LTPersonalCertificates"
+            },
+            {
+              "id": "certs-manager",
+              "label": "Abrir el administrador de certificados de Windows",
+              "description": "Para exportar, importar o eliminar certificados (certmgr.msc).",
+              "action": "Open-LTCertManager"
+            }
+          ]
+        },
+        {
+          "title": "Aplicaciones de firma",
+          "items": [
+            {
+              "id": "autofirma",
+              "label": "Descargar e instalar Autofirma",
+              "description": "Aplicación del Gobierno de España para firmar en sedes electrónicas (AEAT, Seguridad Social, Justicia...).",
+              "action": "Install-LTAutofirma"
+            },
+            {
+              "id": "signador",
+              "label": "Instalar la aplicación nativa del Signador (AOC)",
+              "description": "Aplicación del Consorci AOC para firmar en trámites de la Generalitat de Catalunya y ayuntamientos catalanes.",
+              "action": "Install-LTSignador"
+            }
+          ]
+        },
+        {
+          "title": "Enlaces útiles",
+          "items": [
+            { "id": "link-fnmt", "label": "Sede FNMT - Obtener certificado de persona física", "url": "https://www.sede.fnmt.gob.es/certificados/persona-fisica" },
+            { "id": "link-aeat", "label": "Sede electrónica de la Agencia Tributaria (AEAT)", "url": "https://sede.agenciatributaria.gob.es/" },
+            { "id": "link-atc", "label": "Agència Tributària de Catalunya (ATC)", "url": "https://atc.gencat.cat/" },
+            { "id": "link-lexnet", "label": "LexNET (Justicia)", "url": "https://lexnet.justicia.es/" },
+            { "id": "link-valide", "label": "VALIDe - Validar certificados y firmas", "url": "https://valide.redsara.es/" }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Java",
+      "sections": [
+        {
+          "title": "Java",
+          "items": [
+            {
+              "id": "java-check",
+              "label": "Comprobar la versión de Java",
+              "description": "Muestra el Java que usa el sistema, todas las versiones instaladas y la última versión disponible.",
+              "action": "Get-LTJavaInfo"
+            },
+            {
+              "id": "java-install-temurin",
+              "label": "Descargar e instalar la última versión LTS de Java (Temurin)",
+              "description": "Java gratuito y actualizado (OpenJDK de Eclipse Adoptium). Configura JAVA_HOME y abre los archivos .jar.",
+              "action": "Install-LTJavaTemurin"
+            },
+            {
+              "id": "java-install-oracle8",
+              "label": "Descargar e instalar Java 8 de Oracle (java.com)",
+              "description": "Solo para aplicaciones antiguas que piden específicamente Java de Oracle.",
+              "action": "Install-LTJavaOracle8"
+            },
+            {
+              "id": "java-clear-cache",
+              "label": "Vaciar la caché de Java",
+              "description": "Soluciona errores de aplicaciones Java descargadas que no arrancan o usan una versión antigua.",
+              "action": "Clear-LTJavaCache"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Windows",
+      "sections": [
+        {
+          "title": "Ajustes",
+          "items": [
+            {
+              "id": "win-file-extensions",
+              "label": "Mostrar las extensiones de archivo",
+              "description": "Muestra .pdf, .docx, .exe... Ayuda a detectar adjuntos falsos como \"factura.pdf.exe\". Reinicia el Explorador.",
+              "action": "Enable-LTFileExtensions"
+            },
+            {
+              "id": "win-clipboard-history",
+              "label": "Activar el historial del portapapeles (Windows + V)",
+              "description": "Permite pegar cualquiera de los últimos textos o imágenes copiados.",
+              "action": "Enable-LTClipboardHistory"
+            }
+          ]
+        },
+        {
+          "title": "Utilidades",
+          "items": [
+            {
+              "id": "win-report",
+              "label": "Informe del equipo para soporte",
+              "description": "Recoge Windows, Office, Java, aplicaciones de firma y certificados, y lo copia al portapapeles para enviarlo a ehtu.com.",
+              "action": "Get-LTSystemReport"
+            },
+            {
+              "id": "win-quick-assist",
+              "label": "Asistencia remota (Asistencia rápida de Windows)",
+              "description": "Abre Asistencia rápida para que el técnico de soporte se conecte a tu equipo.",
+              "action": "Start-LTQuickAssist"
+            },
+            {
+              "id": "win-clean-temp",
+              "label": "Limpiar archivos temporales",
+              "description": "Elimina archivos temporales del usuario y la caché de Internet.",
+              "action": "Clear-LTTempFiles"
+            },
+            {
+              "id": "win-flush-dns",
+              "label": "Vaciar la caché DNS",
+              "description": "Útil cuando una web o sede electrónica no carga y en otros equipos sí.",
+              "action": "Clear-LTDnsCache"
+            },
+            {
+              "id": "win-restart-explorer",
+              "label": "Reiniciar el Explorador de Windows",
+              "description": "Soluciona la barra de tareas o el escritorio bloqueados.",
+              "action": "Restart-LTExplorer"
+            },
+            {
+              "id": "win-update",
+              "label": "Abrir Windows Update",
+              "description": "Abre la configuración de actualizaciones de Windows.",
+              "action": "Open-LTWindowsUpdate"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
