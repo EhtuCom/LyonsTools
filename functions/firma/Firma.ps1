@@ -17,12 +17,64 @@ function Install-LTFnmtConfigurator {
     [void](Start-LTInstaller -Path $file)
 }
 
-function Install-LTFnmtRootCertificates {
+function Install-LTCertificateFiles {
     <#
-        Downloads the FNMT CA certificates from the FNMT website.
-        Self-signed roots go to LocalMachine\Root, but ONLY if their thumbprint is one of the
-        official FNMT roots below. Intermediate CAs go to LocalMachine\CA. Expired ones are skipped.
+        Installs CA certificate files into the machine stores in one elevated step.
+        Self-signed roots go to LocalMachine\Root ONLY if their thumbprint is in $TrustedRoots;
+        intermediate CAs go to LocalMachine\CA. Expired certificates are skipped.
     #>
+    param(
+        [Parameter(Mandatory)][string[]]$Files,
+        [Parameter(Mandatory)][hashtable]$TrustedRoots,
+        [Parameter(Mandatory)][string]$Issuer
+    )
+    $seen = @{}
+    $plan = foreach ($file in $Files) {
+        try { $cert = [Security.Cryptography.X509Certificates.X509Certificate2]::new($file) }
+        catch { continue }
+        if ($seen.ContainsKey($cert.Thumbprint)) { continue }
+        $seen[$cert.Thumbprint] = $true
+
+        $name = $cert.GetNameInfo('SimpleName', $false)
+        if ($cert.NotAfter -lt (Get-Date)) { Write-LTLog "Omitido (caducado): $name"; continue }
+        if ($cert.Subject -eq $cert.Issuer) {
+            if (-not $TrustedRoots.ContainsKey($cert.Thumbprint)) {
+                Write-LTLog "Omitido: raíz desconocida '$name' ($($cert.Thumbprint)). No coincide con las raíces oficiales ($Issuer)." -Level Warn
+                continue
+            }
+            [pscustomobject]@{ File = $file; Store = 'Root'; Name = $name }
+        }
+        else {
+            [pscustomobject]@{ File = $file; Store = 'CA'; Name = $name }
+        }
+    }
+    $plan = @($plan)
+    if (-not $plan.Count) { Write-LTLog "No hay certificados para instalar." -Level Error; return }
+
+    $script = ($plan | ForEach-Object {
+            "Import-Certificate -FilePath '$($_.File)' -CertStoreLocation 'Cert:\LocalMachine\$($_.Store)' | Out-Null"
+        }) -join "`n"
+    Write-LTLog "Instalando $($plan.Count) certificados ($Issuer) (se pedirá permiso de administrador)..."
+    if ((Invoke-LTElevated -Script $script) -ne 0) {
+        Write-LTLog "No se han podido instalar los certificados." -Level Error
+        return
+    }
+    foreach ($c in $plan) {
+        $where = if ($c.Store -eq 'Root') { "Entidades de certificación raíz de confianza" } else { "Entidades de certificación intermedias" }
+        Write-LTLog "Instalado: $($c.Name)  ->  $where" -Level Ok
+    }
+    Write-LTLog "Si usas Firefox, activa 'security.enterprise_roots.enabled' o importa los certificados en Firefox."
+}
+
+function New-LTCleanFolder([string]$Name) {
+    $folder = Join-Path (Get-LTWorkFolder) $Name
+    if (Test-Path $folder) { Remove-Item $folder -Recurse -Force -ErrorAction SilentlyContinue }
+    New-Item -ItemType Directory $folder -Force | Out-Null
+    $folder
+}
+
+function Install-LTFnmtRootCertificates {
+    <# FNMT CA certificates, scraped from the FNMT website (with a known list as fallback). #>
     $trustedRoots = @{
         'EC503507B215C4956219E2A89A5B42992C4C2C20' = 'AC RAIZ FNMT-RCM'
         'A4D6B770E765A9BF17ECD7B5E03B852D612FA71D' = 'AC RAIZ FNMT-RCM G2'
@@ -44,46 +96,88 @@ function Install-LTFnmtRootCertificates {
     catch { Write-LTLog "No se ha podido leer la página de la FNMT, se usa la lista conocida." -Level Warn }
     if (-not $paths) { $paths = $known }
 
-    $folder = Join-Path (Get-LTWorkFolder) 'fnmt-certs'
-    if (Test-Path $folder) { Remove-Item "$folder\*" -Force -ErrorAction SilentlyContinue } else { New-Item -ItemType Directory $folder | Out-Null }
-
-    $plan = foreach ($p in $paths) {
+    $folder = New-LTCleanFolder 'fnmt-certs'
+    $files = foreach ($p in $paths) {
         $file = Join-Path $folder ([IO.Path]::GetFileName($p))
         try {
             Invoke-WebRequest -Uri "$base$p" -OutFile $file -UseBasicParsing -UserAgent $LT.UserAgent -ErrorAction Stop
-            $cert = [Security.Cryptography.X509Certificates.X509Certificate2]::new($file)
+            $file
         }
-        catch { Write-LTLog "No se ha podido descargar $p" -Level Warn; continue }
+        catch { Write-LTLog "No se ha podido descargar $p" -Level Warn }
+    }
+    Install-LTCertificateFiles -Files @($files) -TrustedRoots $trustedRoots -Issuer 'FNMT'
+}
 
-        $name = $cert.GetNameInfo('SimpleName', $false)
-        if ($cert.NotAfter -lt (Get-Date)) { Write-LTLog "Omitido (caducado): $name"; continue }
-        if ($cert.Subject -eq $cert.Issuer) {
-            if (-not $trustedRoots.ContainsKey($cert.Thumbprint)) {
-                Write-LTLog "Omitido: raíz desconocida '$name' ($($cert.Thumbprint)). No coincide con las raíces oficiales de la FNMT." -Level Warn
-                continue
-            }
-            [pscustomobject]@{ File = $file; Store = 'Root'; Name = $name }
+function Install-LTAocRootCertificates {
+    <#
+        Consorci AOC (CATCert) hierarchy: needed for idCAT Certificat, T-CAT and the
+        Generalitat / town hall websites. Source:
+        https://suport.aoc.cat/ca-es/article/?servei=tcat&id=KA-07204_claus-publiques-del-consorci-aoc-descarrega-i-instal-lacio
+    #>
+    $trustedRoots = @{
+        '67597EADBA82D7C7FBA591B0BB9C934220052DB7' = 'CA CONSORCI AOC (G3) ROOT-A'
+        '28903A635B5280FAE6774C0B6DA7D6BAA64AF2E8' = 'EC-ACC'
+    }
+    $bundles = 'https://epscd.aoc.cat/assets/documents/jerarquia/arxiucp_2026.zip',
+    'https://epscd.aoc.cat/assets/documents/jerarquia/arxiucp_2025.zip'
+    $single = 'https://epscd.aoc.cat/descarrega/caroot-a.crt', 'https://epscd.aoc.cat/descarrega/casub-a1.crt',
+    'https://epscd.aoc.cat/descarrega/casub-a2.crt', 'https://epscd.aoc.cat/assets/documents/jerarquia/clauEntitatCertificadoraCatcert.zip',
+    'https://epscd.aoc.cat/assets/documents/jerarquia/ec_ciutadania.zip', 'https://epscd.aoc.cat/assets/documents/jerarquia/ec_sectorpublic.zip'
+
+    $folder = New-LTCleanFolder 'aoc-certs'
+    Initialize-LTWeb
+    $got = $false
+    foreach ($url in $bundles) {
+        try {
+            $zip = Join-Path $folder 'bundle.zip'
+            Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing -UserAgent $LT.UserAgent -ErrorAction Stop
+            Expand-Archive -Path $zip -DestinationPath $folder -Force
+            Write-LTLog "Descargado el paquete de claves públicas del Consorci AOC: $url"
+            $got = $true
+            break
         }
-        else {
-            [pscustomobject]@{ File = $file; Store = 'CA'; Name = $name }
+        catch { }
+    }
+    if (-not $got) {
+        foreach ($url in $single) {
+            try {
+                $file = Join-Path $folder ([IO.Path]::GetFileName($url))
+                Invoke-WebRequest -Uri $url -OutFile $file -UseBasicParsing -UserAgent $LT.UserAgent -ErrorAction Stop
+                if ($file -match '\.zip$') { Expand-Archive -Path $file -DestinationPath $folder -Force }
+            }
+            catch { Write-LTLog "No se ha podido descargar $url" -Level Warn }
         }
     }
-    $plan = @($plan)
-    if (-not $plan.Count) { Write-LTLog "No hay certificados para instalar." -Level Error; return }
-
-    $script = ($plan | ForEach-Object {
-            "Import-Certificate -FilePath '$($_.File)' -CertStoreLocation 'Cert:\LocalMachine\$($_.Store)' | Out-Null"
-        }) -join "`n"
-    Write-LTLog "Instalando $($plan.Count) certificados (se pedirá permiso de administrador)..."
-    if ((Invoke-LTElevated -Script $script) -ne 0) {
-        Write-LTLog "No se han podido instalar los certificados." -Level Error
+    $files = @(Get-ChildItem -Path $folder -Recurse -File | Where-Object Extension -in '.crt', '.cer', '.der' | ForEach-Object FullName)
+    if (-not $files.Count) {
+        Write-LTLog "No se han podido descargar los certificados del Consorci AOC." -Level Error
+        Open-LTUrl 'https://suport.aoc.cat/ca-es/article/?servei=tcat&id=KA-07204_claus-publiques-del-consorci-aoc-descarrega-i-instal-lacio'
         return
     }
-    foreach ($c in $plan) {
-        $where = if ($c.Store -eq 'Root') { "Entidades de certificación raíz de confianza" } else { "Entidades de certificación intermedias" }
-        Write-LTLog "Instalado: $($c.Name)  ->  $where" -Level Ok
+    Install-LTCertificateFiles -Files $files -TrustedRoots $trustedRoots -Issuer 'Consorci AOC'
+}
+
+function Install-LTTcatMiddleware {
+    <#
+        Bit4id "PKI Manager" middleware for T-CAT smart cards issued after 13/04/2023
+        (https://suport.aoc.cat/ca-es/article/?servei=tcat&id=KA-07251).
+        The old SafeSign software must be removed first; older cards were revoked in October 2023.
+    #>
+    $old = @(Get-LTInstalledApp -Name 'SafeSign')
+    if ($old.Count) {
+        Write-LTLog "Está instalado $($old[0].DisplayName). El Consorci AOC indica desinstalarlo antes (Configuración > Aplicaciones)." -Level Warn
     }
-    Write-LTLog "Si usas Firefox, activa 'security.enterprise_roots.enabled' o importa los certificados en Firefox."
+    try { $file = Save-LTFile -Url 'https://cdn.bit4id.com/es/AOC/middleware/Bit4id_AOC_Middleware.exe' }
+    catch {
+        Write-LTLog "Error al descargar: $($_.Exception.Message)" -Level Error
+        Open-LTUrl 'https://suport.aoc.cat/ca-es/article/?servei=tcat&id=KA-07251_instal-lacio-del-programari-per-a-l-us-de-la-t-cat-en-targeta'
+        return
+    }
+    if (-not (Test-LTSignature -Path $file)) { return }
+    Write-LTLog "Sigue los pasos del instalador. Necesitarás un lector de tarjetas conectado para usar la T-CAT."
+    if (Start-LTInstaller -Path $file) {
+        Write-LTLog "Manual: https://cdn.bit4id.com/es/AOC/manuals/Windows/Windows.html"
+    }
 }
 
 function Get-LTPersonalCertificates {

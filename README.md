@@ -32,10 +32,12 @@ No hace falta abrir PowerShell como administrador. Lyons Tools se ejecuta con tu
 |---|---|
 | Configurador FNMT | Descarga la última versión desde la sede de la FNMT y la instala. |
 | Certificados raíz FNMT | Instala las raíces y las autoridades intermedias de la FNMT. Las raíces solo se instalan si su huella coincide con las raíces oficiales. |
+| Certificados raíz del Consorci AOC | Instala la jerarquía de CATCert / Consorci AOC (CA CONSORCI AOC G3, EC-ACC, EC-Ciutadania...), que necesitan el idCAT Certificat, la T-CAT y las webs de la Generalitat y los ayuntamientos. Las raíces también se comprueban por su huella. |
 | Mis certificados | Lista los certificados para firmar y avisa de los que caducan en menos de 60 días. |
 | Autofirma | Descarga la última versión desde firmaelectronica.gob.es y la instala. |
 | Signador AOC | Instala la aplicación nativa del Signador del Consorci AOC y su certificado local. |
-| Enlaces útiles | FNMT, AEAT, ATC, LexNET y VALIDe. |
+| Software de la T-CAT | Instala Bit4id PKI Manager, el controlador de las tarjetas T-CAT emitidas desde el 13/04/2023. |
+| Enlaces útiles | FNMT, AEAT, ATC, LexNET, VALIDe, idCAT Mòbil, e-NOTUM y el soporte del Consorci AOC. |
 
 ### Java
 Comprueba la versión instalada, instala la última versión LTS de Java (Eclipse Temurin) o Java 8 de Oracle, y vacía la caché de Java.
