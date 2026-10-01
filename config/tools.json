@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Lyons Tools",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "repo": "EhtuCom/LyonsTools",
     "publisher": "ehtu.com",
     "publisherUrl": "https://ehtu.com"
@@ -150,11 +150,50 @@
             { "id": "link-fnmt", "label": "Sede FNMT - Obtener certificado de persona física", "url": "https://www.sede.fnmt.gob.es/certificados/persona-fisica" },
             { "id": "link-aeat", "label": "Sede electrónica de la Agencia Tributaria (AEAT)", "url": "https://sede.agenciatributaria.gob.es/" },
             { "id": "link-atc", "label": "Agència Tributària de Catalunya (ATC)", "url": "https://atc.gencat.cat/" },
-            { "id": "link-lexnet", "label": "LexNET (Justicia)", "url": "https://lexnet.justicia.es/" },
             { "id": "link-valide", "label": "VALIDe - Validar certificados y firmas", "url": "https://valide.redsara.es/" },
             { "id": "link-idcat-mobil", "label": "idCAT Mòbil - Darse de alta o gestionar", "url": "https://idcatmobil.seu.cat/" },
             { "id": "link-enotum", "label": "e-NOTUM - Notificaciones electrónicas de las administraciones catalanas", "url": "https://www.aoc.cat/es/serveis-aoc/e-notum/" },
             { "id": "link-aoc-support", "label": "Soporte del Consorci AOC (idCAT, T-CAT, Signador)", "url": "https://suport.aoc.cat/" }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Abogacía",
+      "intro": "Para LexNET y e-justícia.cat hace falta un certificado en tarjeta (ACA, DNIe, FNMT o idCAT/T-CAT), Autofirma (LexNET) y el Signador del Consorci AOC (e-justícia.cat). Autofirma y el Signador están en la pestaña Firma digital.",
+      "sections": [
+        {
+          "title": "Certificado ACA (Abogacía)",
+          "items": [
+            {
+              "id": "aca-middleware",
+              "label": "Instalar el software de la tarjeta ACA (Bit4id)",
+              "description": "Software oficial del Consejo General de la Abogacía para usar el carné colegial con certificado ACA en un lector de tarjetas.",
+              "action": "Install-LTAcaMiddleware"
+            },
+            {
+              "id": "aca-root-certs",
+              "label": "Instalar certificados raíz de la ACA",
+              "description": "Instala ACA ROOT 2 y las subordinadas ACA 1 y ACA 2 para que Windows y las sedes judiciales reconozcan el certificado de abogado.",
+              "action": "Install-LTAcaRootCertificates"
+            }
+          ]
+        },
+        {
+          "title": "Justicia",
+          "items": [
+            {
+              "id": "adobe-reader",
+              "label": "Instalar Adobe Acrobat Reader",
+              "description": "Para abrir y validar la firma de los PDF de notificaciones y escritos judiciales.",
+              "action": "Install-LTAdobeReader"
+            },
+            { "id": "link-lexnet", "label": "LexNET (Justicia)", "url": "https://lexnet.justicia.es/" },
+            { "id": "link-ejcat", "label": "e-justícia.cat - Extranet del profesional", "url": "https://ejcat.justicia.gencat.cat/IAP/" },
+            { "id": "link-seujudicial", "label": "Seu judicial electrònica de Catalunya - Profesionales", "url": "https://seujudicial.gencat.cat/ca/que_cal_fer/Soc-un-professional-del-dret/ejusticia/" },
+            { "id": "link-signador-test", "label": "Comprobar que el Signador funciona", "url": "https://signador.aoc.cat/signador/testNativa" },
+            { "id": "link-acaplus", "label": "ACA Plus - Certificados de la Abogacía", "url": "https://www.abogacia.es/site/acaplus/" },
+            { "id": "link-dnie", "label": "DNI electrónico - Software y controladores", "url": "https://www.dnielectronico.es/PortalDNIe/PRF1_Cons02.action?pag=REF_1101" }
           ]
         }
       ]

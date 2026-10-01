@@ -39,6 +39,16 @@ No hace falta abrir PowerShell como administrador. Lyons Tools se ejecuta con tu
 | Software de la T-CAT | Instala Bit4id PKI Manager, el controlador de las tarjetas T-CAT emitidas desde el 13/04/2023. |
 | Enlaces útiles | FNMT, AEAT, ATC, LexNET, VALIDe, idCAT Mòbil, e-NOTUM y el soporte del Consorci AOC. |
 
+### Abogacía
+| Acción | Qué hace |
+|---|---|
+| Software de la tarjeta ACA | Instala el software Bit4id oficial del Consejo General de la Abogacía para usar el carné colegial con certificado ACA. |
+| Certificados raíz de la ACA | Instala ACA ROOT 2 (se comprueba su huella oficial) y las subordinadas ACA 1 y ACA 2. |
+| Adobe Acrobat Reader | Instala Adobe Acrobat Reader para abrir y validar los PDF firmados de notificaciones y escritos judiciales. |
+| Enlaces | LexNET, e-justícia.cat, Seu judicial, prueba del Signador, ACA Plus y el software del DNIe. |
+
+El controlador "Mini Lector ACA" de abogacia.es no se instala a propósito: su firma digital está revocada y Windows ya reconoce el lector por sí solo.
+
 ### Java
 Comprueba la versión instalada, instala la última versión LTS de Java (Eclipse Temurin) o Java 8 de Oracle, y vacía la caché de Java.
 

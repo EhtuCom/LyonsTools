@@ -28,7 +28,8 @@ $LT = [hashtable]::Synchronized(@{})
 $LT.Version = '__LT_VERSION__'
 $LT.Repo = '__LT_REPO__'
 $LT.SourceUrl = 'https://raw.githubusercontent.com/__LT_REPO__/main/lyonstools.ps1'
-$LT.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) LyonsTools/$($LT.Version)"
+# A regular browser user agent: some official sites (abogacia.es) block unknown clients.
+$LT.UserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
 $LT.OfficePolicyRoot = 'Software\Policies\Microsoft\Office\16.0'
 $LT.Gui = $false
 $LT.Busy = $false

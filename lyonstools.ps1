@@ -1,9 +1,9 @@
 <#
-    Lyons Tools 1.1.0 - utilidades de Windows, Office, Java y firma digital
+    Lyons Tools 1.2.0 - utilidades de Windows, Office, Java y firma digital
     https://github.com/EhtuCom/LyonsTools  |  https://ehtu.com
 
     GENERATED FILE - DO NOT EDIT. Edit the sources and run Compile.ps1.
-    Built 2026-10-01 07:55
+    Built 2026-10-01 07:58
 #>
 
 <#
@@ -33,14 +33,65 @@ param(
 )
 
 $LT = [hashtable]::Synchronized(@{})
-$LT.Version = '1.1.0'
+$LT.Version = '1.2.0'
 $LT.Repo = 'EhtuCom/LyonsTools'
 $LT.SourceUrl = 'https://raw.githubusercontent.com/EhtuCom/LyonsTools/main/lyonstools.ps1'
-$LT.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) LyonsTools/$($LT.Version)"
+# A regular browser user agent: some official sites (abogacia.es) block unknown clients.
+$LT.UserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
 $LT.OfficePolicyRoot = 'Software\Policies\Microsoft\Office\16.0'
 $LT.Gui = $false
 $LT.Busy = $false
 
+
+# ---- functions\abogacia\Abogacia.ps1 ----
+#region Abogac$([char]0x00ED)a ----------------------------------------------------------------
+
+function Install-LTAcaMiddleware {
+    <#
+        Bit4id middleware for the ACA (Autoridad de Certificaci$([char]0x00F3)n de la Abogac$([char]0x00ED)a) card,
+        from https://www.abogacia.es/site/acaplus/guias-y-software-de-instalacion/
+        The "Mini Lector ACA" driver offered on that page is NOT installed: its code-signing
+        certificate has been revoked, and current Windows detects the reader by itself.
+    #>
+    try { $file = Save-LTFile -Url 'https://www.abogacia.es/repositorio/acaplusdescarga/Bit4id_Middleware.exe' -FileName 'Bit4id_ACA_Middleware.exe' }
+    catch {
+        Write-LTLog "Error al descargar: $($_.Exception.Message)" -Level Error
+        Open-LTUrl 'https://www.abogacia.es/site/acaplus/guias-y-software-de-instalacion/'
+        return
+    }
+    if (-not (Test-LTSignature -Path $file)) { return }
+    Write-LTLog "Sigue los pasos del instalador. Despu$([char]0x00E9)s, conecta el lector con la tarjeta ACA insertada."
+    if (Start-LTInstaller -Path $file) {
+        Write-LTLog "Si Windows no reconoce el lector, consulta la gu$([char]0x00ED)a de ACA: https://www.abogacia.es/site/acaplus/tarjeta-configura-dispositivos/"
+    }
+}
+
+function Install-LTAcaRootCertificates {
+    <# ACA root and subordinate CAs. The root is pinned to the SHA1 published by the Consejo General de la Abogac$([char]0x00ED)a. #>
+    $trustedRoots = @{ '3A09ECCF9D8770C3D5515806A9230EC9B32659BE' = 'ACA ROOT 2' }
+    $folder = New-LTCleanFolder 'aca-certs'
+    Initialize-LTWeb
+    $files = foreach ($name in 'ACA_ROOTCA.CER', 'ACA_SUB1CA.cer', 'ACA_SUB2CA.cer') {
+        $file = Join-Path $folder $name
+        try {
+            Invoke-WebRequest -Uri "https://www.abogacia.es/repositorio/acaplusdescarga/$name" -OutFile $file -UseBasicParsing -UserAgent $LT.UserAgent -ErrorAction Stop
+            $file
+        }
+        catch { Write-LTLog "No se ha podido descargar $name" -Level Warn }
+    }
+    Install-LTCertificateFiles -Files @($files) -TrustedRoots $trustedRoots -Issuer 'ACA'
+}
+
+function Install-LTAdobeReader {
+    <# e-just$([char]0x00ED)cia.cat and most court notifications are PDFs with signatures that Adobe Reader can validate. #>
+    if (Install-LTWinget -Id 'Adobe.Acrobat.Reader.64-bit') {
+        Write-LTLog "Adobe Acrobat Reader instalado o ya actualizado." -Level Ok
+        return
+    }
+    Open-LTUrl 'https://get.adobe.com/es/reader/'
+}
+
+#endregion
 
 # ---- functions\core\Core.ps1 ----
 #region Core helpers ------------------------------------------------------------
@@ -295,7 +346,7 @@ function Install-LTCertificateFiles {
     $seen = @{}
     $plan = foreach ($file in $Files) {
         try { $cert = [Security.Cryptography.X509Certificates.X509Certificate2]::new($file) }
-        catch { continue }
+        catch { Write-LTLog "Omitido: $([IO.Path]::GetFileName($file)) no es un certificado v$([char]0x00E1)lido (la web puede haber bloqueado la descarga)." -Level Warn; continue }
         if ($seen.ContainsKey($cert.Thumbprint)) { continue }
         $seen[$cert.Thumbprint] = $true
 
@@ -1032,7 +1083,7 @@ $LTConfigJson = @'
 {
   "app": {
     "name": "Lyons Tools",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "repo": "EhtuCom/LyonsTools",
     "publisher": "ehtu.com",
     "publisherUrl": "https://ehtu.com"
@@ -1181,11 +1232,50 @@ $LTConfigJson = @'
             { "id": "link-fnmt", "label": "Sede FNMT - Obtener certificado de persona f\u00edsica", "url": "https://www.sede.fnmt.gob.es/certificados/persona-fisica" },
             { "id": "link-aeat", "label": "Sede electr\u00f3nica de la Agencia Tributaria (AEAT)", "url": "https://sede.agenciatributaria.gob.es/" },
             { "id": "link-atc", "label": "Ag\u00e8ncia Tribut\u00e0ria de Catalunya (ATC)", "url": "https://atc.gencat.cat/" },
-            { "id": "link-lexnet", "label": "LexNET (Justicia)", "url": "https://lexnet.justicia.es/" },
             { "id": "link-valide", "label": "VALIDe - Validar certificados y firmas", "url": "https://valide.redsara.es/" },
             { "id": "link-idcat-mobil", "label": "idCAT M\u00f2bil - Darse de alta o gestionar", "url": "https://idcatmobil.seu.cat/" },
             { "id": "link-enotum", "label": "e-NOTUM - Notificaciones electr\u00f3nicas de las administraciones catalanas", "url": "https://www.aoc.cat/es/serveis-aoc/e-notum/" },
             { "id": "link-aoc-support", "label": "Soporte del Consorci AOC (idCAT, T-CAT, Signador)", "url": "https://suport.aoc.cat/" }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Abogac\u00eda",
+      "intro": "Para LexNET y e-just\u00edcia.cat hace falta un certificado en tarjeta (ACA, DNIe, FNMT o idCAT/T-CAT), Autofirma (LexNET) y el Signador del Consorci AOC (e-just\u00edcia.cat). Autofirma y el Signador est\u00e1n en la pesta\u00f1a Firma digital.",
+      "sections": [
+        {
+          "title": "Certificado ACA (Abogac\u00eda)",
+          "items": [
+            {
+              "id": "aca-middleware",
+              "label": "Instalar el software de la tarjeta ACA (Bit4id)",
+              "description": "Software oficial del Consejo General de la Abogac\u00eda para usar el carn\u00e9 colegial con certificado ACA en un lector de tarjetas.",
+              "action": "Install-LTAcaMiddleware"
+            },
+            {
+              "id": "aca-root-certs",
+              "label": "Instalar certificados ra\u00edz de la ACA",
+              "description": "Instala ACA ROOT 2 y las subordinadas ACA 1 y ACA 2 para que Windows y las sedes judiciales reconozcan el certificado de abogado.",
+              "action": "Install-LTAcaRootCertificates"
+            }
+          ]
+        },
+        {
+          "title": "Justicia",
+          "items": [
+            {
+              "id": "adobe-reader",
+              "label": "Instalar Adobe Acrobat Reader",
+              "description": "Para abrir y validar la firma de los PDF de notificaciones y escritos judiciales.",
+              "action": "Install-LTAdobeReader"
+            },
+            { "id": "link-lexnet", "label": "LexNET (Justicia)", "url": "https://lexnet.justicia.es/" },
+            { "id": "link-ejcat", "label": "e-just\u00edcia.cat - Extranet del profesional", "url": "https://ejcat.justicia.gencat.cat/IAP/" },
+            { "id": "link-seujudicial", "label": "Seu judicial electr\u00f2nica de Catalunya - Profesionales", "url": "https://seujudicial.gencat.cat/ca/que_cal_fer/Soc-un-professional-del-dret/ejusticia/" },
+            { "id": "link-signador-test", "label": "Comprobar que el Signador funciona", "url": "https://signador.aoc.cat/signador/testNativa" },
+            { "id": "link-acaplus", "label": "ACA Plus - Certificados de la Abogac\u00eda", "url": "https://www.abogacia.es/site/acaplus/" },
+            { "id": "link-dnie", "label": "DNI electr\u00f3nico - Software y controladores", "url": "https://www.dnielectronico.es/PortalDNIe/PRF1_Cons02.action?pag=REF_1101" }
           ]
         }
       ]

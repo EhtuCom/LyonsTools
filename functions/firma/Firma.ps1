@@ -31,7 +31,7 @@ function Install-LTCertificateFiles {
     $seen = @{}
     $plan = foreach ($file in $Files) {
         try { $cert = [Security.Cryptography.X509Certificates.X509Certificate2]::new($file) }
-        catch { continue }
+        catch { Write-LTLog "Omitido: $([IO.Path]::GetFileName($file)) no es un certificado válido (la web puede haber bloqueado la descarga)." -Level Warn; continue }
         if ($seen.ContainsKey($cert.Thumbprint)) { continue }
         $seen[$cert.Thumbprint] = $true
 
