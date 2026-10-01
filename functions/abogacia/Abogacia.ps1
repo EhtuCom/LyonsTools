@@ -9,14 +9,19 @@ function Install-LTAcaMiddleware {
     #>
     try { $file = Save-LTFile -Url 'https://www.abogacia.es/repositorio/acaplusdescarga/Bit4id_Middleware.exe' -FileName 'Bit4id_ACA_Middleware.exe' }
     catch {
-        Write-LTLog "Error al descargar: $($_.Exception.Message)" -Level Error
+        $err = $_.Exception.Message
+        Write-LTLog "Download error: $err" "Error al descargar: $err" "Error en descarregar: $err" -Level Error
         Open-LTUrl 'https://www.abogacia.es/site/acaplus/guias-y-software-de-instalacion/'
         return
     }
     if (-not (Test-LTSignature -Path $file)) { return }
-    Write-LTLog "Sigue los pasos del instalador. Después, conecta el lector con la tarjeta ACA insertada."
+    Write-LTLog "Follow the installer steps. Then connect the reader with the ACA card inserted." `
+        "Sigue los pasos del instalador. Después, conecta el lector con la tarjeta ACA insertada." `
+        "Segueix els passos de l'instal·lador. Després, connecta el lector amb la targeta ACA inserida."
     if (Start-LTInstaller -Path $file) {
-        Write-LTLog "Si Windows no reconoce el lector, consulta la guía de ACA: https://www.abogacia.es/site/acaplus/tarjeta-configura-dispositivos/"
+        Write-LTLog "If Windows does not recognise the reader, see the ACA guide: https://www.abogacia.es/site/acaplus/tarjeta-configura-dispositivos/" `
+            "Si Windows no reconoce el lector, consulta la guía de ACA: https://www.abogacia.es/site/acaplus/tarjeta-configura-dispositivos/" `
+            "Si Windows no reconeix el lector, consulta la guia d'ACA: https://www.abogacia.es/site/acaplus/tarjeta-configura-dispositivos/"
     }
 }
 
@@ -31,18 +36,9 @@ function Install-LTAcaRootCertificates {
             Invoke-WebRequest -Uri "https://www.abogacia.es/repositorio/acaplusdescarga/$name" -OutFile $file -UseBasicParsing -UserAgent $LT.UserAgent -ErrorAction Stop
             $file
         }
-        catch { Write-LTLog "No se ha podido descargar $name" -Level Warn }
+        catch { Write-LTLog "Could not download $name" "No se ha podido descargar $name" "No s'ha pogut descarregar $name" -Level Warn }
     }
     Install-LTCertificateFiles -Files @($files) -TrustedRoots $trustedRoots -Issuer 'ACA'
-}
-
-function Install-LTAdobeReader {
-    <# e-justícia.cat and most court notifications are PDFs with signatures that Adobe Reader can validate. #>
-    if (Install-LTWinget -Id 'Adobe.Acrobat.Reader.64-bit') {
-        Write-LTLog "Adobe Acrobat Reader instalado o ya actualizado." -Level Ok
-        return
-    }
-    Open-LTUrl 'https://get.adobe.com/es/reader/'
 }
 
 #endregion

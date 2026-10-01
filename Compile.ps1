@@ -69,11 +69,25 @@ $jsonText = Read-Source $jsonPath
 $config = $jsonText | ConvertFrom-Json   # validates JSON
 $version = $config.app.version
 
+$languages = @($config.languages | ForEach-Object code)
+function Test-Translated($Text, [string]$Where) {
+    if ($null -eq $Text) { return }
+    foreach ($l in $languages) {
+        if (-not $Text.$l) { throw "tools.json: missing '$l' text in $Where" }
+    }
+}
+foreach ($key in $config.strings.PSObject.Properties.Name) { Test-Translated $config.strings.$key "strings.$key" }
+
 $ids = @{}
 foreach ($tab in $config.tabs) {
+    Test-Translated $tab.title 'tab title'
+    Test-Translated $tab.intro "tab '$($tab.title.en)' intro"
     foreach ($section in $tab.sections) {
+        Test-Translated $section.title "section in '$($tab.title.en)'"
         foreach ($item in $section.items) {
             if ($ids.ContainsKey($item.id)) { throw "Duplicate id in tools.json: $($item.id)" }
+            Test-Translated $item.label "$($item.id) label"
+            Test-Translated $item.description "$($item.id) description"
             $ids[$item.id] = $item
         }
     }

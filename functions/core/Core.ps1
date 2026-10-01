@@ -1,22 +1,47 @@
 #region Core helpers ------------------------------------------------------------
 
+function Get-LTString {
+    <#
+        Returns the text for the current language ($LT.Lang: en, es or ca).
+        Accepts either three strings (English, Spanish, Catalan) or one object
+        with en/es/ca properties, as used in config/tools.json. Falls back to English.
+    #>
+    param(
+        [Parameter(Position = 0)]$En,
+        [Parameter(Position = 1)][string]$Es,
+        [Parameter(Position = 2)][string]$Ca
+    )
+    if ($null -ne $En -and $En -isnot [string]) {
+        $value = $En.($LT.Lang)
+        if (-not $value) { $value = $En.en }
+        return [string]$value
+    }
+    $value = switch ($LT.Lang) { 'es' { $Es } 'ca' { $Ca } default { $En } }
+    if ($value) { $value } else { $En }
+}
+
 function Write-LTLog {
     <#
         Writes a line to the console, the GUI log panel (through a thread-safe queue
         drained by the UI timer) and the daily log file.
+        Pass the message in English, Spanish and Catalan:  Write-LTLog "Done." "Hecho." "Fet." -Level Ok
+        A single (untranslated) message is shown as is in every language.
     #>
     param(
-        [Parameter(Position = 0)][AllowEmptyString()][string]$Message,
+        [Parameter(Position = 0)][AllowEmptyString()][string]$En,
+        [Parameter(Position = 1)][string]$Es,
+        [Parameter(Position = 2)][string]$Ca,
         [ValidateSet('Info', 'Ok', 'Warn', 'Error', 'Step')][string]$Level = 'Info'
     )
+    $message = Get-LTString $En $Es $Ca
     $tag = switch ($Level) {
         'Ok'    { '[OK]   ' }
-        'Warn'  { '[AVISO]' }
+        'Warn'  { Get-LTString '[WARN] ' '[AVISO]' "[AVÍS] " }
         'Error' { '[ERROR]' }
         'Step'  { '=====> ' }
         default { '       ' }
     }
-    $line = '{0} {1} {2}' -f (Get-Date -Format 'HH:mm:ss'), $tag, $Message
+    $line = '{0} {1} {2}' -f (Get-Date -Format 'HH:mm:ss'), $tag, $message
 
     if ($LT.LogQueue) { $LT.LogQueue.Enqueue($line) }
     if (-not $LT.Gui) {
@@ -31,6 +56,17 @@ function Write-LTLog {
 function Test-LTAdmin {
     $id = [Security.Principal.WindowsIdentity]::GetCurrent()
     ([Security.Principal.WindowsPrincipal]$id).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Test-LTCanElevate {
+    <#
+        True if this user can get administrator rights through UAC (already elevated, or a
+        member of Administrators running with a filtered token). Standard users - e.g. on a
+        Remote Desktop / terminal server - get $false, and admin-only actions are disabled
+        for them instead of showing a password prompt they cannot answer.
+    #>
+    if (Test-LTAdmin) { return $true }
+    [bool]((whoami.exe /groups) -match 'S-1-5-32-544')
 }
 
 function Invoke-LTElevated {
@@ -60,7 +96,7 @@ function Invoke-LTElevated {
         return $p.ExitCode
     }
     catch {
-        Write-LTLog "Se ha cancelado la solicitud de permisos de administrador." -Level Warn
+        Write-LTLog "The administrator permission request was cancelled." "Se ha cancelado la solicitud de permisos de administrador." "S'ha cancel·lat la sol·licitud de permisos d'administrador." -Level Warn
         return -1
     }
 }
@@ -108,10 +144,10 @@ function Save-LTFile {
     Initialize-LTWeb
     if (-not $FileName) { $FileName = [IO.Path]::GetFileName(([Uri]$Url).LocalPath) }
     $target = Join-Path (Get-LTWorkFolder) $FileName
-    Write-LTLog "Descargando $Url"
+    Write-LTLog "Downloading $Url" "Descargando $Url" "Descarregant $Url"
     Invoke-WebRequest -Uri $Url -OutFile $target -UseBasicParsing -UserAgent $LT.UserAgent -ErrorAction Stop
     $size = [math]::Round((Get-Item $target).Length / 1MB, 1)
-    Write-LTLog "Descargado: $target ($size MB)"
+    Write-LTLog "Downloaded: $target ($size MB)" "Descargado: $target ($size MB)" "Descarregat: $target ($size MB)"
     $target
 }
 
@@ -120,11 +156,14 @@ function Test-LTSignature {
     param([Parameter(Mandatory)][string]$Path)
     if ($Path -notmatch '\.(exe|msi)$') { return $true }
     $sig = Get-AuthenticodeSignature -FilePath $Path
+    $signer = $sig.SignerCertificate.Subject
     if ($sig.Status -eq 'Valid') {
-        Write-LTLog "Firma digital v$([char]0x00E1)lida: $($sig.SignerCertificate.Subject)" -Level Ok
+        Write-LTLog "Valid digital signature: $signer" "Firma digital válida: $signer" "Signatura digital vàlida: $signer" -Level Ok
         return $true
     }
-    Write-LTLog "El instalador no tiene una firma digital v$([char]0x00E1)lida ($($sig.Status))." -Level Warn
+    Write-LTLog "The installer does not have a valid digital signature ($($sig.Status))." `
+        "El instalador no tiene una firma digital válida ($($sig.Status))." `
+        "L'instal·lador no té una signatura digital vàlida ($($sig.Status))." -Level Warn
     return $false
 }
 
@@ -145,7 +184,8 @@ function Start-LTInstaller {
     else {
         $file = $Path
     }
-    Write-LTLog "Ejecutando instalador: $([IO.Path]::GetFileName($Path)) $Arguments"
+    $name = [IO.Path]::GetFileName($Path)
+    Write-LTLog "Running installer: $name $Arguments" "Ejecutando instalador: $name $Arguments" "Executant l'instal·lador: $name $Arguments"
     try {
         $splat = @{ FilePath = $file; Wait = $true; PassThru = $true; ErrorAction = 'Stop' }
         if ($Arguments) { $splat.ArgumentList = $Arguments }
@@ -153,14 +193,16 @@ function Start-LTInstaller {
         $p = Start-Process @splat
     }
     catch {
-        Write-LTLog "No se ha podido ejecutar el instalador: $($_.Exception.Message)" -Level Error
+        $err = $_.Exception.Message
+        Write-LTLog "The installer could not be run: $err" "No se ha podido ejecutar el instalador: $err" "No s'ha pogut executar l'instal·lador: $err" -Level Error
         return $false
     }
-    switch ($p.ExitCode) {
-        0       { Write-LTLog "Instalaci$([char]0x00F3)n completada." -Level Ok; return $true }
-        3010    { Write-LTLog "Instalaci$([char]0x00F3)n completada. Es necesario reiniciar el equipo." -Level Ok; return $true }
-        1602    { Write-LTLog "Instalaci$([char]0x00F3)n cancelada por el usuario." -Level Warn; return $false }
-        default { Write-LTLog "El instalador ha terminado con c$([char]0x00F3)digo $($p.ExitCode)." -Level Warn; return $false }
+    $code = $p.ExitCode
+    switch ($code) {
+        0       { Write-LTLog "Installation completed." "Instalación completada." "Instal·lació completada." -Level Ok; return $true }
+        3010    { Write-LTLog "Installation completed. The computer must be restarted." "Instalación completada. Es necesario reiniciar el equipo." "Instal·lació completada. Cal reiniciar l'equip." -Level Ok; return $true }
+        1602    { Write-LTLog "Installation cancelled by the user." "Instalación cancelada por el usuario." "Instal·lació cancel·lada per l'usuari." -Level Warn; return $false }
+        default { Write-LTLog "The installer finished with code $code." "El instalador ha terminado con código $code." "L'instal·lador ha acabat amb el codi $code." -Level Warn; return $false }
     }
 }
 
@@ -169,16 +211,17 @@ function Install-LTWinget {
     param([Parameter(Mandatory)][string]$Id)
     $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
     if (-not $winget) {
-        Write-LTLog "winget no est$([char]0x00E1) disponible en este equipo." -Level Warn
+        Write-LTLog "winget is not available on this computer." "winget no está disponible en este equipo." "winget no està disponible en aquest equip." -Level Warn
         return $false
     }
-    Write-LTLog "Instalando $Id con winget..."
+    Write-LTLog "Installing $Id with winget..." "Instalando $Id con winget..." "Instal·lant $Id amb winget..."
     $out = & $winget.Source install --id $Id --exact --silent --accept-source-agreements --accept-package-agreements 2>&1
     $out | Where-Object { "$_".Trim() -and "$_" -notmatch '^[\s\-\\|/]+$' -and "$_" -notmatch "[$([char]0x2580)-$([char]0x259F)]" } |
         Select-Object -Last 6 | ForEach-Object { Write-LTLog "    $_" }
     # 0 = ok, -1978335189 = already installed / no newer version
     if ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq -1978335189) { return $true }
-    Write-LTLog "winget ha devuelto el c$([char]0x00F3)digo $LASTEXITCODE." -Level Warn
+    $code = $LASTEXITCODE
+    Write-LTLog "winget returned code $code." "winget ha devuelto el código $code." "winget ha retornat el codi $code." -Level Warn
     return $false
 }
 
@@ -198,7 +241,7 @@ function Get-LTInstalledApp {
 
 function Open-LTUrl {
     param([Parameter(Mandatory)][string]$Url)
-    Write-LTLog "Abriendo $Url"
+    Write-LTLog "Opening $Url" "Abriendo $Url" "Obrint $Url"
     Start-Process $Url
 }
 
@@ -209,6 +252,12 @@ function Invoke-LTItem {
         [int]$Minutes = 5
     )
     if ($Item.url) { Open-LTUrl -Url $Item.url; return }
+    if ($Item.admin -and -not $LT.CanElevate) {
+        Write-LTLog "This action requires an administrator. Ask your IT support to run it (on a terminal server it applies to all users)." `
+            "Esta acción requiere un administrador. Pide a tu soporte informático que la ejecute (en un servidor de terminales se aplica a todos los usuarios)." `
+            "Aquesta acció requereix un administrador. Demana al teu suport informàtic que l'executi (en un servidor de terminals s'aplica a tots els usuaris)." -Level Warn
+        return
+    }
     $params = @{}
     if ($Item.usesMinutes) { $params.Minutes = $Minutes }
     & $Item.action @params

@@ -1,81 +1,165 @@
 {
   "app": {
     "name": "Lyons Tools",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "repo": "EhtuCom/LyonsTools",
     "publisher": "ehtu.com",
-    "publisherUrl": "https://ehtu.com"
+    "publisherUrl": "https://ehtu.com",
+    "defaultLanguage": "en"
+  },
+  "languages": [
+    { "code": "en", "name": "English" },
+    { "code": "es", "name": "Español" },
+    { "code": "ca", "name": "Català" }
+  ],
+  "strings": {
+    "subtitle": {
+      "en": "Settings and utilities for law and tax firms: Windows, Office, Java and digital signature",
+      "es": "Ajustes y utilidades para despachos: Windows, Office, Java y firma digital",
+      "ca": "Ajustos i utilitats per a despatxos: Windows, Office, Java i signatura digital"
+    },
+    "minutes": { "en": "AutoRecover interval (minutes):", "es": "Intervalo de autoguardado (minutos):", "ca": "Interval de desament automàtic (minuts):" },
+    "run": { "en": "Run", "es": "Ejecutar", "ca": "Executa" },
+    "open": { "en": "Open", "es": "Abrir", "ca": "Obre" },
+    "runSelected": { "en": "Run selected", "es": "Ejecutar seleccionadas", "ca": "Executa les seleccionades" },
+    "clearSelection": { "en": "Clear selection", "es": "Desmarcar todo", "ca": "Desmarca-ho tot" },
+    "copyLog": { "en": "Copy log", "es": "Copiar registro", "ca": "Copia el registre" },
+    "openLogs": { "en": "Log folder", "es": "Carpeta de registros", "ca": "Carpeta de registres" },
+    "ready": { "en": "Ready.", "es": "Listo.", "ca": "Llest." },
+    "busy": {
+      "en": "Working... you can keep browsing, do not close the window.",
+      "es": "Trabajando... puedes seguir mirando, no cierres la ventana.",
+      "ca": "Treballant... pots continuar mirant, no tanquis la finestra."
+    },
+    "admin": { "en": "Administrator", "es": "Administrador", "ca": "Administrador" },
+    "user": { "en": "User", "es": "Usuario", "ca": "Usuari" },
+    "language": { "en": "Language", "es": "Idioma", "ca": "Idioma" },
+    "requiresAdmin": { "en": "Administrator", "es": "Administrador", "ca": "Administrador" },
+    "requiresAdminTip": {
+      "en": "Requires an administrator. On a terminal server, the administrator runs it once for all users.",
+      "es": "Requiere un administrador. En un servidor de terminales, el administrador lo ejecuta una vez para todos los usuarios.",
+      "ca": "Requereix un administrador. En un servidor de terminals, l'administrador ho executa un cop per a tots els usuaris."
+    },
+    "support": { "en": "support", "es": "soporte", "ca": "suport" },
+    "welcome": {
+      "en": "Tick the actions and press 'Run selected', or use the button on each row.",
+      "es": "Marca las acciones y pulsa 'Ejecutar seleccionadas', o usa el botón de cada fila.",
+      "ca": "Marca les accions i prem 'Executa les seleccionades', o fes servir el botó de cada fila."
+    }
   },
   "tabs": [
     {
-      "title": "Office",
-      "intro": "Los ajustes de autoguardado se aplican como directiva para tu usuario (Windows pedirá permiso de administrador una vez) y Office no los puede deshacer. Se activan al volver a abrir Word, Excel o PowerPoint.",
+      "title": { "en": "Office", "es": "Office", "ca": "Office" },
+      "intro": {
+        "en": "AutoRecover settings are saved for your user. If you have administrator rights they are also locked as a policy, so Office cannot undo them. Close Word, Excel and PowerPoint first; the settings apply the next time they are opened.",
+        "es": "Los ajustes de autoguardado se guardan para tu usuario. Si tienes permisos de administrador, además se fijan como directiva y Office no los puede deshacer. Cierra antes Word, Excel y PowerPoint; se aplican al volver a abrirlos.",
+        "ca": "Els ajustos de desament automàtic es desen per al teu usuari. Si tens permisos d'administrador, a més es fixen com a directiva i Office no els pot desfer. Tanca abans el Word, l'Excel i el PowerPoint; s'apliquen en tornar-los a obrir."
+      },
       "minutesInput": 5,
       "sections": [
         {
-          "title": "Autoguardado y recuperación",
+          "title": { "en": "AutoSave and recovery", "es": "Autoguardado y recuperación", "ca": "Desament automàtic i recuperació" },
           "items": [
             {
               "id": "word-autorecover",
-              "label": "Autoguardado en Word cada N minutos",
-              "description": "Activa la Autorrecuperación de Word y guarda la información cada N minutos (Archivo > Opciones > Guardar).",
+              "label": { "en": "Word AutoRecover every N minutes", "es": "Autoguardado en Word cada N minutos", "ca": "Desament automàtic al Word cada N minuts" },
+              "description": {
+                "en": "Turns on Word AutoRecover and saves the recovery information every N minutes (File > Options > Save).",
+                "es": "Activa la Autorrecuperación de Word y guarda la información cada N minutos (Archivo > Opciones > Guardar).",
+                "ca": "Activa la Recuperació automàtica del Word i en desa la informació cada N minuts (Fitxer > Opcions > Desa)."
+              },
               "action": "Set-LTWordAutoRecover",
               "usesMinutes": true
             },
             {
               "id": "excel-autorecover",
-              "label": "Autoguardado en Excel cada N minutos",
-              "description": "Activa la Autorrecuperación de Excel y guarda la información cada N minutos.",
+              "label": { "en": "Excel AutoRecover every N minutes", "es": "Autoguardado en Excel cada N minutos", "ca": "Desament automàtic a l'Excel cada N minuts" },
+              "description": {
+                "en": "Turns on Excel AutoRecover and saves the recovery information every N minutes.",
+                "es": "Activa la Autorrecuperación de Excel y guarda la información cada N minutos.",
+                "ca": "Activa la Recuperació automàtica de l'Excel i en desa la informació cada N minuts."
+              },
               "action": "Set-LTExcelAutoRecover",
               "usesMinutes": true
             },
             {
               "id": "powerpoint-autorecover",
-              "label": "Autoguardado en PowerPoint cada N minutos",
-              "description": "Activa la Autorrecuperación de PowerPoint y guarda la información cada N minutos.",
+              "label": { "en": "PowerPoint AutoRecover every N minutes", "es": "Autoguardado en PowerPoint cada N minutos", "ca": "Desament automàtic al PowerPoint cada N minuts" },
+              "description": {
+                "en": "Turns on PowerPoint AutoRecover and saves the recovery information every N minutes.",
+                "es": "Activa la Autorrecuperación de PowerPoint y guarda la información cada N minutos.",
+                "ca": "Activa la Recuperació automàtica del PowerPoint i en desa la informació cada N minuts."
+              },
               "action": "Set-LTPowerPointAutoRecover",
               "usesMinutes": true
             },
             {
               "id": "office-crash-protection",
-              "label": "Protección completa contra cierres inesperados",
-              "description": "Word, Excel y PowerPoint: autorrecuperación cada N minutos, conservar la última versión si se cierra sin guardar, y copia de seguridad automática (.wbk) de cada documento de Word.",
+              "label": { "en": "Full protection against crashes", "es": "Protección completa contra cierres inesperados", "ca": "Protecció completa contra tancaments inesperats" },
+              "description": {
+                "en": "Word, Excel and PowerPoint: AutoRecover every N minutes, keep the last version if closed without saving, and an automatic backup copy (.wbk) of every Word document.",
+                "es": "Word, Excel y PowerPoint: autorrecuperación cada N minutos, conservar la última versión si se cierra sin guardar, y copia de seguridad automática (.wbk) de cada documento de Word.",
+                "ca": "Word, Excel i PowerPoint: recuperació automàtica cada N minuts, conservar l'última versió si es tanca sense desar, i còpia de seguretat automàtica (.wbk) de cada document del Word."
+              },
               "action": "Enable-LTOfficeCrashProtection",
               "usesMinutes": true
             },
             {
               "id": "office-find-recoverable",
-              "label": "Buscar documentos recuperables",
-              "description": "Busca archivos de autorrecuperación, copias de seguridad y documentos sin guardar de los últimos 30 días y abre la carpeta.",
+              "label": { "en": "Find recoverable documents", "es": "Buscar documentos recuperables", "ca": "Cerca documents recuperables" },
+              "description": {
+                "en": "Looks for AutoRecover files, backup copies and unsaved documents from the last 30 days and opens the folder.",
+                "es": "Busca archivos de autorrecuperación, copias de seguridad y documentos sin guardar de los últimos 30 días y abre la carpeta.",
+                "ca": "Cerca fitxers de recuperació automàtica, còpies de seguretat i documents sense desar dels últims 30 dies i n'obre la carpeta."
+              },
               "action": "Find-LTOfficeRecoverableFiles"
             },
             {
               "id": "office-autorecover-reset",
-              "label": "Quitar los ajustes de autoguardado de Lyons Tools",
-              "description": "Devuelve el control a Archivo > Opciones > Guardar (los ajustes anteriores quedan fijados y no se pueden cambiar desde Office).",
+              "admin": true,
+              "label": { "en": "Remove the Lyons Tools AutoRecover settings", "es": "Quitar los ajustes de autoguardado de Lyons Tools", "ca": "Treu els ajustos de desament automàtic de Lyons Tools" },
+              "description": {
+                "en": "Gives control back to File > Options > Save (the settings above are locked and cannot be changed from Office).",
+                "es": "Devuelve el control a Archivo > Opciones > Guardar (los ajustes anteriores quedan fijados y no se pueden cambiar desde Office).",
+                "ca": "Torna el control a Fitxer > Opcions > Desa (els ajustos anteriors queden fixats i no es poden canviar des d'Office)."
+              },
               "action": "Reset-LTOfficeAutoRecover"
             }
           ]
         },
         {
-          "title": "Mantenimiento",
+          "title": { "en": "Maintenance", "es": "Mantenimiento", "ca": "Manteniment" },
           "items": [
             {
               "id": "office-info",
-              "label": "Ver versión de Office y ajustes de autoguardado",
-              "description": "Muestra la versión, el canal de actualización y la configuración actual de autorrecuperación.",
+              "label": { "en": "Show Office version and AutoRecover settings", "es": "Ver versión de Office y ajustes de autoguardado", "ca": "Mostra la versió d'Office i els ajustos de desament" },
+              "description": {
+                "en": "Shows the version, the update channel and the current AutoRecover configuration.",
+                "es": "Muestra la versión, el canal de actualización y la configuración actual de autorrecuperación.",
+                "ca": "Mostra la versió, el canal d'actualització i la configuració actual de recuperació automàtica."
+              },
               "action": "Get-LTOfficeInfo"
             },
             {
               "id": "office-update",
-              "label": "Actualizar Office ahora",
-              "description": "Busca e instala las actualizaciones de Microsoft 365 / Office.",
+              "admin": true,
+              "label": { "en": "Update Office now", "es": "Actualizar Office ahora", "ca": "Actualitza Office ara" },
+              "description": {
+                "en": "Checks for and installs Microsoft 365 / Office updates.",
+                "es": "Busca e instala las actualizaciones de Microsoft 365 / Office.",
+                "ca": "Cerca i instal·la les actualitzacions de Microsoft 365 / Office."
+              },
               "action": "Update-LTOffice"
             },
             {
               "id": "office-repair",
-              "label": "Reparación rápida de Office",
-              "description": "Repara Office sin conexión a Internet. Útil si Word o Excel se cierran solos o fallan al abrir. Cierra todos los programas de Office antes.",
+              "admin": true,
+              "label": { "en": "Office Quick Repair", "es": "Reparación rápida de Office", "ca": "Reparació ràpida d'Office" },
+              "description": {
+                "en": "Repairs Office without an Internet connection. Useful if Word or Excel close by themselves or fail to open. Close all Office programs first.",
+                "es": "Repara Office sin conexión a Internet. Útil si Word o Excel se cierran solos o fallan al abrir. Cierra todos los programas de Office antes.",
+                "ca": "Repara Office sense connexió a Internet. Útil si el Word o l'Excel es tanquen sols o no s'obren. Tanca tots els programes d'Office abans."
+              },
               "action": "Repair-LTOffice"
             }
           ]
@@ -83,149 +167,213 @@
       ]
     },
     {
-      "title": "Firma digital",
-      "intro": "Herramientas para certificados digitales de la FNMT y del Consorci AOC (idCAT, T-CAT), Autofirma y el Signador.",
+      "title": { "en": "Digital signature", "es": "Firma digital", "ca": "Signatura digital" },
+      "intro": {
+        "en": "Tools for FNMT and Consorci AOC digital certificates (idCAT, T-CAT), Autofirma and the Signador.",
+        "es": "Herramientas para certificados digitales de la FNMT y del Consorci AOC (idCAT, T-CAT), Autofirma y el Signador.",
+        "ca": "Eines per a certificats digitals de la FNMT i del Consorci AOC (idCAT, T-CAT), Autofirma i el Signador."
+      },
       "sections": [
         {
-          "title": "Certificados",
+          "title": { "en": "Certificates", "es": "Certificados", "ca": "Certificats" },
           "items": [
             {
               "id": "fnmt-configurador",
-              "label": "Descargar e instalar el Configurador FNMT",
-              "description": "Necesario para solicitar y descargar el certificado de persona física o de representante de la FNMT.",
+              "admin": true,
+              "label": { "en": "Download and install the FNMT Configurator", "es": "Descargar e instalar el Configurador FNMT", "ca": "Descarrega i instal·la el Configurador FNMT" },
+              "description": {
+                "en": "Required to request and download the FNMT individual or representative certificate.",
+                "es": "Necesario para solicitar y descargar el certificado de persona física o de representante de la FNMT.",
+                "ca": "Necessari per sol·licitar i descarregar el certificat de persona física o de representant de la FNMT."
+              },
               "action": "Install-LTFnmtConfigurator"
             },
             {
               "id": "fnmt-root-certs",
-              "label": "Instalar certificados raíz de la FNMT",
-              "description": "Instala la AC Raíz FNMT-RCM y las autoridades intermedias en el almacén de Windows (lo usan Edge, Chrome y Office).",
+              "label": { "en": "Install FNMT root certificates", "es": "Instalar certificados raíz de la FNMT", "ca": "Instal·la els certificats arrel de la FNMT" },
+              "description": {
+                "en": "Installs the AC Raíz FNMT-RCM and its intermediate authorities in the Windows store (used by Edge, Chrome and Office).",
+                "es": "Instala la AC Raíz FNMT-RCM y las autoridades intermedias en el almacén de Windows (lo usan Edge, Chrome y Office).",
+                "ca": "Instal·la l'AC Raíz FNMT-RCM i les autoritats intermèdies al magatzem de Windows (el fan servir Edge, Chrome i Office)."
+              },
               "action": "Install-LTFnmtRootCertificates"
             },
             {
               "id": "aoc-root-certs",
-              "label": "Instalar certificados raíz del Consorci AOC (idCAT, T-CAT)",
-              "description": "Instala la jerarquía del Consorci AOC (CA CONSORCI AOC G3, EC-ACC, EC-Ciutadania...) necesaria para el idCAT Certificat, la T-CAT y las webs de la Generalitat y los ayuntamientos.",
+              "label": { "en": "Install Consorci AOC root certificates (idCAT, T-CAT)", "es": "Instalar certificados raíz del Consorci AOC (idCAT, T-CAT)", "ca": "Instal·la els certificats arrel del Consorci AOC (idCAT, T-CAT)" },
+              "description": {
+                "en": "Installs the Consorci AOC hierarchy (CA CONSORCI AOC G3, EC-ACC, EC-Ciutadania...) needed for idCAT Certificat, T-CAT and the Generalitat and town hall websites.",
+                "es": "Instala la jerarquía del Consorci AOC (CA CONSORCI AOC G3, EC-ACC, EC-Ciutadania...) necesaria para el idCAT Certificat, la T-CAT y las webs de la Generalitat y los ayuntamientos.",
+                "ca": "Instal·la la jerarquia del Consorci AOC (CA CONSORCI AOC G3, EC-ACC, EC-Ciutadania...) necessària per a l'idCAT Certificat, la T-CAT i els webs de la Generalitat i dels ajuntaments."
+              },
               "action": "Install-LTAocRootCertificates"
             },
             {
               "id": "certs-list",
-              "label": "Ver mis certificados digitales y su caducidad",
-              "description": "Lista los certificados personales instalados y avisa de los que caducan en menos de 60 días.",
+              "label": { "en": "Show my digital certificates and their expiry", "es": "Ver mis certificados digitales y su caducidad", "ca": "Mostra els meus certificats digitals i la seva caducitat" },
+              "description": {
+                "en": "Lists the installed signing certificates and warns about those expiring within 60 days.",
+                "es": "Lista los certificados personales instalados y avisa de los que caducan en menos de 60 días.",
+                "ca": "Llista els certificats personals instal·lats i avisa dels que caduquen en menys de 60 dies."
+              },
               "action": "Get-LTPersonalCertificates"
             },
             {
               "id": "certs-manager",
-              "label": "Abrir el administrador de certificados de Windows",
-              "description": "Para exportar, importar o eliminar certificados (certmgr.msc).",
+              "label": { "en": "Open the Windows certificate manager", "es": "Abrir el administrador de certificados de Windows", "ca": "Obre l'administrador de certificats de Windows" },
+              "description": {
+                "en": "To export, import or delete certificates (certmgr.msc).",
+                "es": "Para exportar, importar o eliminar certificados (certmgr.msc).",
+                "ca": "Per exportar, importar o eliminar certificats (certmgr.msc)."
+              },
               "action": "Open-LTCertManager"
             }
           ]
         },
         {
-          "title": "Aplicaciones de firma",
+          "title": { "en": "Signing applications", "es": "Aplicaciones de firma", "ca": "Aplicacions de signatura" },
           "items": [
             {
               "id": "autofirma",
-              "label": "Descargar e instalar Autofirma",
-              "description": "Aplicación del Gobierno de España para firmar en sedes electrónicas (AEAT, Seguridad Social, Justicia...).",
+              "admin": true,
+              "label": { "en": "Download and install Autofirma", "es": "Descargar e instalar Autofirma", "ca": "Descarrega i instal·la Autofirma" },
+              "description": {
+                "en": "Spanish Government app for signing on e-government sites (AEAT, Social Security, Justice...).",
+                "es": "Aplicación del Gobierno de España para firmar en sedes electrónicas (AEAT, Seguridad Social, Justicia...).",
+                "ca": "Aplicació del Govern d'Espanya per signar a les seus electròniques (AEAT, Seguretat Social, Justícia...)."
+              },
               "action": "Install-LTAutofirma"
             },
             {
               "id": "signador",
-              "label": "Instalar la aplicación nativa del Signador (AOC)",
-              "description": "Aplicación del Consorci AOC para firmar en trámites de la Generalitat de Catalunya y ayuntamientos catalanes.",
+              "label": { "en": "Install the Signador native app (AOC)", "es": "Instalar la aplicación nativa del Signador (AOC)", "ca": "Instal·la l'aplicació nativa del Signador (AOC)" },
+              "description": {
+                "en": "Consorci AOC app for signing in Generalitat de Catalunya and Catalan town hall procedures, and e-justícia.cat.",
+                "es": "Aplicación del Consorci AOC para firmar en trámites de la Generalitat de Catalunya, ayuntamientos catalanes y e-justícia.cat.",
+                "ca": "Aplicació del Consorci AOC per signar en tràmits de la Generalitat de Catalunya, ajuntaments catalans i e-justícia.cat."
+              },
               "action": "Install-LTSignador"
             },
             {
               "id": "tcat-middleware",
-              "label": "Instalar el software de la tarjeta T-CAT (Bit4id PKI Manager)",
-              "description": "Controlador para usar la T-CAT en tarjeta con un lector (tarjetas emitidas desde el 13/04/2023). Sustituye al antiguo SafeSign.",
+              "admin": true,
+              "label": { "en": "Install the T-CAT card software (Bit4id PKI Manager)", "es": "Instalar el software de la tarjeta T-CAT (Bit4id PKI Manager)", "ca": "Instal·la el programari de la targeta T-CAT (Bit4id PKI Manager)" },
+              "description": {
+                "en": "Driver for using the T-CAT smart card with a reader (cards issued since 13/04/2023). Replaces the old SafeSign.",
+                "es": "Controlador para usar la T-CAT en tarjeta con un lector (tarjetas emitidas desde el 13/04/2023). Sustituye al antiguo SafeSign.",
+                "ca": "Controlador per fer servir la T-CAT en targeta amb un lector (targetes emeses des del 13/04/2023). Substitueix l'antic SafeSign."
+              },
               "action": "Install-LTTcatMiddleware"
             }
           ]
         },
         {
-          "title": "Enlaces útiles",
+          "title": { "en": "Useful links", "es": "Enlaces útiles", "ca": "Enllaços útils" },
           "items": [
-            { "id": "link-fnmt", "label": "Sede FNMT - Obtener certificado de persona física", "url": "https://www.sede.fnmt.gob.es/certificados/persona-fisica" },
-            { "id": "link-aeat", "label": "Sede electrónica de la Agencia Tributaria (AEAT)", "url": "https://sede.agenciatributaria.gob.es/" },
-            { "id": "link-atc", "label": "Agència Tributària de Catalunya (ATC)", "url": "https://atc.gencat.cat/" },
-            { "id": "link-valide", "label": "VALIDe - Validar certificados y firmas", "url": "https://valide.redsara.es/" },
-            { "id": "link-idcat-mobil", "label": "idCAT Mòbil - Darse de alta o gestionar", "url": "https://idcatmobil.seu.cat/" },
-            { "id": "link-enotum", "label": "e-NOTUM - Notificaciones electrónicas de las administraciones catalanas", "url": "https://www.aoc.cat/es/serveis-aoc/e-notum/" },
-            { "id": "link-aoc-support", "label": "Soporte del Consorci AOC (idCAT, T-CAT, Signador)", "url": "https://suport.aoc.cat/" }
+            { "id": "link-fnmt", "label": { "en": "FNMT - Get an individual certificate", "es": "Sede FNMT - Obtener certificado de persona física", "ca": "Seu FNMT - Obtenir el certificat de persona física" }, "url": "https://www.sede.fnmt.gob.es/certificados/persona-fisica" },
+            { "id": "link-aeat", "label": { "en": "Spanish Tax Agency e-office (AEAT)", "es": "Sede electrónica de la Agencia Tributaria (AEAT)", "ca": "Seu electrònica de l'Agència Tributària (AEAT)" }, "url": "https://sede.agenciatributaria.gob.es/" },
+            { "id": "link-atc", "label": { "en": "Catalan Tax Agency (ATC)", "es": "Agència Tributària de Catalunya (ATC)", "ca": "Agència Tributària de Catalunya (ATC)" }, "url": "https://atc.gencat.cat/" },
+            { "id": "link-valide", "label": { "en": "VALIDe - Validate certificates and signatures", "es": "VALIDe - Validar certificados y firmas", "ca": "VALIDe - Validar certificats i signatures" }, "url": "https://valide.redsara.es/" },
+            { "id": "link-idcat-mobil", "label": { "en": "idCAT Mòbil - Sign up or manage", "es": "idCAT Mòbil - Darse de alta o gestionar", "ca": "idCAT Mòbil - Alta i gestió" }, "url": "https://idcatmobil.seu.cat/" },
+            { "id": "link-enotum", "label": { "en": "e-NOTUM - Electronic notifications from Catalan administrations", "es": "e-NOTUM - Notificaciones electrónicas de las administraciones catalanas", "ca": "e-NOTUM - Notificacions electròniques de les administracions catalanes" }, "url": "https://www.aoc.cat/es/serveis-aoc/e-notum/" },
+            { "id": "link-aoc-support", "label": { "en": "Consorci AOC support (idCAT, T-CAT, Signador)", "es": "Soporte del Consorci AOC (idCAT, T-CAT, Signador)", "ca": "Suport del Consorci AOC (idCAT, T-CAT, Signador)" }, "url": "https://suport.aoc.cat/" }
           ]
         }
       ]
     },
     {
-      "title": "Abogacía",
-      "intro": "Para LexNET y e-justícia.cat hace falta un certificado en tarjeta (ACA, DNIe, FNMT o idCAT/T-CAT), Autofirma (LexNET) y el Signador del Consorci AOC (e-justícia.cat). Autofirma y el Signador están en la pestaña Firma digital.",
+      "title": { "en": "Legal", "es": "Abogacía", "ca": "Advocacia" },
+      "intro": {
+        "en": "LexNET and e-justícia.cat require a smart card certificate (ACA, DNIe, FNMT or idCAT/T-CAT), Autofirma (LexNET) and the Consorci AOC Signador (e-justícia.cat). Autofirma and the Signador are in the Digital signature tab.",
+        "es": "Para LexNET y e-justícia.cat hace falta un certificado en tarjeta (ACA, DNIe, FNMT o idCAT/T-CAT), Autofirma (LexNET) y el Signador del Consorci AOC (e-justícia.cat). Autofirma y el Signador están en la pestaña Firma digital.",
+        "ca": "Per a LexNET i e-justícia.cat cal un certificat en targeta (ACA, DNIe, FNMT o idCAT/T-CAT), Autofirma (LexNET) i el Signador del Consorci AOC (e-justícia.cat). Autofirma i el Signador són a la pestanya Signatura digital."
+      },
       "sections": [
         {
-          "title": "Certificado ACA (Abogacía)",
+          "title": { "en": "ACA certificate (Spanish Bar)", "es": "Certificado ACA (Abogacía)", "ca": "Certificat ACA (Advocacia)" },
           "items": [
             {
               "id": "aca-middleware",
-              "label": "Instalar el software de la tarjeta ACA (Bit4id)",
-              "description": "Software oficial del Consejo General de la Abogacía para usar el carné colegial con certificado ACA en un lector de tarjetas.",
+              "admin": true,
+              "label": { "en": "Install the ACA card software (Bit4id)", "es": "Instalar el software de la tarjeta ACA (Bit4id)", "ca": "Instal·la el programari de la targeta ACA (Bit4id)" },
+              "description": {
+                "en": "Official software from the Consejo General de la Abogacía to use the bar card with the ACA certificate in a card reader.",
+                "es": "Software oficial del Consejo General de la Abogacía para usar el carné colegial con certificado ACA en un lector de tarjetas.",
+                "ca": "Programari oficial del Consejo General de la Abogacía per fer servir el carnet col·legial amb certificat ACA en un lector de targetes."
+              },
               "action": "Install-LTAcaMiddleware"
             },
             {
               "id": "aca-root-certs",
-              "label": "Instalar certificados raíz de la ACA",
-              "description": "Instala ACA ROOT 2 y las subordinadas ACA 1 y ACA 2 para que Windows y las sedes judiciales reconozcan el certificado de abogado.",
+              "label": { "en": "Install ACA root certificates", "es": "Instalar certificados raíz de la ACA", "ca": "Instal·la els certificats arrel de l'ACA" },
+              "description": {
+                "en": "Installs ACA ROOT 2 and the ACA 1 and ACA 2 subordinates so Windows and the court websites recognise the lawyer certificate.",
+                "es": "Instala ACA ROOT 2 y las subordinadas ACA 1 y ACA 2 para que Windows y las sedes judiciales reconozcan el certificado de abogado.",
+                "ca": "Instal·la ACA ROOT 2 i les subordinades ACA 1 i ACA 2 perquè Windows i les seus judicials reconeguin el certificat d'advocat."
+              },
               "action": "Install-LTAcaRootCertificates"
             }
           ]
         },
         {
-          "title": "Justicia",
+          "title": { "en": "Justice", "es": "Justicia", "ca": "Justícia" },
           "items": [
-            {
-              "id": "adobe-reader",
-              "label": "Instalar Adobe Acrobat Reader",
-              "description": "Para abrir y validar la firma de los PDF de notificaciones y escritos judiciales.",
-              "action": "Install-LTAdobeReader"
-            },
-            { "id": "link-lexnet", "label": "LexNET (Justicia)", "url": "https://lexnet.justicia.es/" },
-            { "id": "link-ejcat", "label": "e-justícia.cat - Extranet del profesional", "url": "https://ejcat.justicia.gencat.cat/IAP/" },
-            { "id": "link-seujudicial", "label": "Seu judicial electrònica de Catalunya - Profesionales", "url": "https://seujudicial.gencat.cat/ca/que_cal_fer/Soc-un-professional-del-dret/ejusticia/" },
-            { "id": "link-signador-test", "label": "Comprobar que el Signador funciona", "url": "https://signador.aoc.cat/signador/testNativa" },
-            { "id": "link-acaplus", "label": "ACA Plus - Certificados de la Abogacía", "url": "https://www.abogacia.es/site/acaplus/" },
-            { "id": "link-dnie", "label": "DNI electrónico - Software y controladores", "url": "https://www.dnielectronico.es/PortalDNIe/PRF1_Cons02.action?pag=REF_1101" }
+            { "id": "link-lexnet", "label": { "en": "LexNET (Justice)", "es": "LexNET (Justicia)", "ca": "LexNET (Justícia)" }, "url": "https://lexnet.justicia.es/" },
+            { "id": "link-ejcat", "label": { "en": "e-justícia.cat - Professional extranet", "es": "e-justícia.cat - Extranet del profesional", "ca": "e-justícia.cat - Extranet del professional" }, "url": "https://ejcat.justicia.gencat.cat/IAP/" },
+            { "id": "link-seujudicial", "label": { "en": "Catalan judicial e-office - Professionals", "es": "Seu judicial electrònica de Catalunya - Profesionales", "ca": "Seu judicial electrònica de Catalunya - Professionals" }, "url": "https://seujudicial.gencat.cat/ca/que_cal_fer/Soc-un-professional-del-dret/ejusticia/" },
+            { "id": "link-signador-test", "label": { "en": "Check that the Signador works", "es": "Comprobar que el Signador funciona", "ca": "Comprova que el Signador funciona" }, "url": "https://signador.aoc.cat/signador/testNativa" },
+            { "id": "link-acaplus", "label": { "en": "ACA Plus - Spanish Bar certificates", "es": "ACA Plus - Certificados de la Abogacía", "ca": "ACA Plus - Certificats de l'Advocacia" }, "url": "https://www.abogacia.es/site/acaplus/" },
+            { "id": "link-dnie", "label": { "en": "Electronic ID card (DNIe) - Software and drivers", "es": "DNI electrónico - Software y controladores", "ca": "DNI electrònic - Programari i controladors" }, "url": "https://www.dnielectronico.es/PortalDNIe/PRF1_Cons02.action?pag=REF_1101" }
           ]
         }
       ]
     },
     {
-      "title": "Java",
+      "title": { "en": "Java", "es": "Java", "ca": "Java" },
       "sections": [
         {
-          "title": "Java",
+          "title": { "en": "Java", "es": "Java", "ca": "Java" },
           "items": [
             {
               "id": "java-check",
-              "label": "Comprobar la versión de Java",
-              "description": "Muestra el Java que usa el sistema, todas las versiones instaladas y la última versión disponible.",
+              "label": { "en": "Check the Java version", "es": "Comprobar la versión de Java", "ca": "Comprova la versió de Java" },
+              "description": {
+                "en": "Shows the Java used by the system, every installed version and the latest available version.",
+                "es": "Muestra el Java que usa el sistema, todas las versiones instaladas y la última versión disponible.",
+                "ca": "Mostra el Java que fa servir el sistema, totes les versions instal·lades i l'última versió disponible."
+              },
               "action": "Get-LTJavaInfo"
             },
             {
               "id": "java-install-temurin",
-              "label": "Descargar e instalar la última versión LTS de Java (Temurin)",
-              "description": "Java gratuito y actualizado (OpenJDK de Eclipse Adoptium). Configura JAVA_HOME y abre los archivos .jar.",
+              "admin": true,
+              "label": { "en": "Download and install the latest LTS Java (Temurin)", "es": "Descargar e instalar la última versión LTS de Java (Temurin)", "ca": "Descarrega i instal·la l'última versió LTS de Java (Temurin)" },
+              "description": {
+                "en": "Free, up-to-date Java (Eclipse Adoptium OpenJDK). Sets JAVA_HOME and opens .jar files.",
+                "es": "Java gratuito y actualizado (OpenJDK de Eclipse Adoptium). Configura JAVA_HOME y abre los archivos .jar.",
+                "ca": "Java gratuït i actualitzat (OpenJDK d'Eclipse Adoptium). Configura JAVA_HOME i obre els fitxers .jar."
+              },
               "action": "Install-LTJavaTemurin"
             },
             {
               "id": "java-install-oracle8",
-              "label": "Descargar e instalar Java 8 de Oracle (java.com)",
-              "description": "Solo para aplicaciones antiguas que piden específicamente Java de Oracle.",
+              "admin": true,
+              "label": { "en": "Download and install Oracle Java 8 (java.com)", "es": "Descargar e instalar Java 8 de Oracle (java.com)", "ca": "Descarrega i instal·la Java 8 d'Oracle (java.com)" },
+              "description": {
+                "en": "Only for older applications that specifically require Oracle Java.",
+                "es": "Solo para aplicaciones antiguas que piden específicamente Java de Oracle.",
+                "ca": "Només per a aplicacions antigues que demanen específicament el Java d'Oracle."
+              },
               "action": "Install-LTJavaOracle8"
             },
             {
               "id": "java-clear-cache",
-              "label": "Vaciar la caché de Java",
-              "description": "Soluciona errores de aplicaciones Java descargadas que no arrancan o usan una versión antigua.",
+              "label": { "en": "Clear the Java cache", "es": "Vaciar la caché de Java", "ca": "Buida la memòria cau de Java" },
+              "description": {
+                "en": "Fixes downloaded Java applications that do not start or use an old version.",
+                "es": "Soluciona errores de aplicaciones Java descargadas que no arrancan o usan una versión antigua.",
+                "ca": "Soluciona errors d'aplicacions Java descarregades que no arrenquen o fan servir una versió antiga."
+              },
               "action": "Clear-LTJavaCache"
             }
           ]
@@ -233,62 +381,178 @@
       ]
     },
     {
-      "title": "Windows",
+      "title": { "en": "Windows", "es": "Windows", "ca": "Windows" },
       "sections": [
         {
-          "title": "Ajustes",
+          "title": { "en": "Settings", "es": "Ajustes", "ca": "Ajustos" },
           "items": [
             {
               "id": "win-file-extensions",
-              "label": "Mostrar las extensiones de archivo",
-              "description": "Muestra .pdf, .docx, .exe... Ayuda a detectar adjuntos falsos como \"factura.pdf.exe\". Reinicia el Explorador.",
+              "label": { "en": "Show file extensions", "es": "Mostrar las extensiones de archivo", "ca": "Mostra les extensions dels fitxers" },
+              "description": {
+                "en": "Shows .pdf, .docx, .exe... Helps spot fake attachments such as \"invoice.pdf.exe\". Restarts Explorer.",
+                "es": "Muestra .pdf, .docx, .exe... Ayuda a detectar adjuntos falsos como \"factura.pdf.exe\". Reinicia el Explorador.",
+                "ca": "Mostra .pdf, .docx, .exe... Ajuda a detectar adjunts falsos com \"factura.pdf.exe\". Reinicia l'Explorador."
+              },
               "action": "Enable-LTFileExtensions"
             },
             {
               "id": "win-clipboard-history",
-              "label": "Activar el historial del portapapeles (Windows + V)",
-              "description": "Permite pegar cualquiera de los últimos textos o imágenes copiados.",
+              "label": { "en": "Turn on clipboard history (Windows + V)", "es": "Activar el historial del portapapeles (Windows + V)", "ca": "Activa l'historial del porta-retalls (Windows + V)" },
+              "description": {
+                "en": "Lets you paste any of the most recently copied texts or images.",
+                "es": "Permite pegar cualquiera de los últimos textos o imágenes copiados.",
+                "ca": "Permet enganxar qualsevol dels últims textos o imatges copiats."
+              },
               "action": "Enable-LTClipboardHistory"
             }
           ]
         },
         {
-          "title": "Utilidades",
+          "title": { "en": "PDF", "es": "PDF", "ca": "PDF" },
+          "items": [
+            {
+              "id": "adobe-reader",
+              "admin": true,
+              "label": { "en": "Install Adobe Acrobat Reader", "es": "Instalar Adobe Acrobat Reader", "ca": "Instal·la Adobe Acrobat Reader" },
+              "description": {
+                "en": "To open court notifications, tax forms and signed documents and validate their signatures.",
+                "es": "Para abrir notificaciones, modelos tributarios y documentos firmados y validar sus firmas.",
+                "ca": "Per obrir notificacions, models tributaris i documents signats i validar-ne les signatures."
+              },
+              "action": "Install-LTAdobeReader"
+            },
+            {
+              "id": "pdf-default-adobe",
+              "label": { "en": "Make Adobe Reader the default PDF app", "es": "Hacer Adobe Reader la aplicación predeterminada para PDF", "ca": "Fes d'Adobe Reader l'aplicació predeterminada per als PDF" },
+              "description": {
+                "en": "Windows asks you to confirm it: choose 'Adobe Acrobat' and 'Always' in the window that opens. Per user.",
+                "es": "Windows pide confirmarlo: elige 'Adobe Acrobat' y 'Siempre' en la ventana que se abre. Por usuario.",
+                "ca": "Windows demana confirmar-ho: tria 'Adobe Acrobat' i 'Sempre' a la finestra que s'obre. Per usuari."
+              },
+              "action": "Set-LTAdobeDefaultPdf"
+            },
+            {
+              "id": "pdf-browser-download",
+              "admin": true,
+              "label": { "en": "Download PDFs instead of opening them in Edge, Chrome or Firefox", "es": "Descargar los PDF en lugar de abrirlos en Edge, Chrome o Firefox", "ca": "Descarrega els PDF en lloc d'obrir-los a Edge, Chrome o Firefox" },
+              "description": {
+                "en": "Turns off the browsers' built-in PDF viewer: PDFs are downloaded and opened with the default PDF app. For all users of the computer.",
+                "es": "Desactiva el visor de PDF de los navegadores: los PDF se descargan y se abren con la aplicación de PDF predeterminada. Para todos los usuarios del equipo.",
+                "ca": "Desactiva el visor de PDF dels navegadors: els PDF es descarreguen i s'obren amb l'aplicació de PDF predeterminada. Per a tots els usuaris de l'equip."
+              },
+              "action": "Set-LTBrowserPdfDownload"
+            },
+            {
+              "id": "pdf-browser-reset",
+              "admin": true,
+              "label": { "en": "Let browsers open PDFs again", "es": "Volver a abrir los PDF en el navegador", "ca": "Torna a obrir els PDF al navegador" },
+              "description": {
+                "en": "Undoes the previous action.",
+                "es": "Deshace la acción anterior.",
+                "ca": "Desfà l'acció anterior."
+              },
+              "action": "Reset-LTBrowserPdfDownload"
+            }
+          ]
+        },
+        {
+          "title": { "en": "Default browser", "es": "Navegador predeterminado", "ca": "Navegador predeterminat" },
+          "items": [
+            {
+              "id": "browser-default-chrome",
+              "label": { "en": "Make Google Chrome the default browser", "es": "Hacer Google Chrome el navegador predeterminado", "ca": "Fes de Google Chrome el navegador predeterminat" },
+              "description": {
+                "en": "Installs Chrome if needed (administrator). Windows asks you to confirm it with 'Set default'. Per user.",
+                "es": "Instala Chrome si hace falta (administrador). Windows pide confirmarlo con 'Establecer como predeterminado'. Por usuario.",
+                "ca": "Instal·la Chrome si cal (administrador). Windows demana confirmar-ho amb 'Estableix com a predeterminat'. Per usuari."
+              },
+              "action": "Set-LTDefaultBrowserChrome"
+            },
+            {
+              "id": "browser-default-edge",
+              "label": { "en": "Make Microsoft Edge the default browser", "es": "Hacer Microsoft Edge el navegador predeterminado", "ca": "Fes de Microsoft Edge el navegador predeterminat" },
+              "description": {
+                "en": "Windows asks you to confirm it with 'Set default'. Per user.",
+                "es": "Windows pide confirmarlo con 'Establecer como predeterminado'. Por usuario.",
+                "ca": "Windows demana confirmar-ho amb 'Estableix com a predeterminat'. Per usuari."
+              },
+              "action": "Set-LTDefaultBrowserEdge"
+            },
+            {
+              "id": "browser-default-firefox",
+              "label": { "en": "Make Mozilla Firefox the default browser", "es": "Hacer Mozilla Firefox el navegador predeterminado", "ca": "Fes de Mozilla Firefox el navegador predeterminat" },
+              "description": {
+                "en": "Installs Firefox if needed (administrator). Firefox usually sets itself; otherwise Windows asks you to confirm. Per user.",
+                "es": "Instala Firefox si hace falta (administrador). Firefox normalmente se configura solo; si no, Windows pide confirmarlo. Por usuario.",
+                "ca": "Instal·la Firefox si cal (administrador). Firefox normalment es configura sol; si no, Windows demana confirmar-ho. Per usuari."
+              },
+              "action": "Set-LTDefaultBrowserFirefox"
+            }
+          ]
+        },
+        {
+          "title": { "en": "Utilities", "es": "Utilidades", "ca": "Utilitats" },
           "items": [
             {
               "id": "win-report",
-              "label": "Informe del equipo para soporte",
-              "description": "Recoge Windows, Office, Java, aplicaciones de firma y certificados, y lo copia al portapapeles para enviarlo a ehtu.com.",
+              "label": { "en": "Computer report for support", "es": "Informe del equipo para soporte", "ca": "Informe de l'equip per al suport" },
+              "description": {
+                "en": "Collects Windows, Office, Java, signing apps and certificates, and copies it to the clipboard to send to ehtu.com.",
+                "es": "Recoge Windows, Office, Java, aplicaciones de firma y certificados, y lo copia al portapapeles para enviarlo a ehtu.com.",
+                "ca": "Recull Windows, Office, Java, aplicacions de signatura i certificats, i ho copia al porta-retalls per enviar-ho a ehtu.com."
+              },
               "action": "Get-LTSystemReport"
             },
             {
               "id": "win-quick-assist",
-              "label": "Asistencia remota (Asistencia rápida de Windows)",
-              "description": "Abre Asistencia rápida para que el técnico de soporte se conecte a tu equipo.",
+              "label": { "en": "Remote support (Windows Quick Assist)", "es": "Asistencia remota (Asistencia rápida de Windows)", "ca": "Assistència remota (Assistència ràpida de Windows)" },
+              "description": {
+                "en": "Opens Quick Assist so the support technician can connect to your computer.",
+                "es": "Abre Asistencia rápida para que el técnico de soporte se conecte a tu equipo.",
+                "ca": "Obre l'Assistència ràpida perquè el tècnic de suport es connecti al teu equip."
+              },
               "action": "Start-LTQuickAssist"
             },
             {
               "id": "win-clean-temp",
-              "label": "Limpiar archivos temporales",
-              "description": "Elimina archivos temporales del usuario y la caché de Internet.",
+              "label": { "en": "Clean temporary files", "es": "Limpiar archivos temporales", "ca": "Neteja els fitxers temporals" },
+              "description": {
+                "en": "Deletes the user's temporary files and the Internet cache.",
+                "es": "Elimina archivos temporales del usuario y la caché de Internet.",
+                "ca": "Elimina els fitxers temporals de l'usuari i la memòria cau d'Internet."
+              },
               "action": "Clear-LTTempFiles"
             },
             {
               "id": "win-flush-dns",
-              "label": "Vaciar la caché DNS",
-              "description": "Útil cuando una web o sede electrónica no carga y en otros equipos sí.",
+              "admin": true,
+              "label": { "en": "Flush the DNS cache", "es": "Vaciar la caché DNS", "ca": "Buida la memòria cau DNS" },
+              "description": {
+                "en": "Useful when a website or e-office does not load here but works on other computers.",
+                "es": "Útil cuando una web o sede electrónica no carga y en otros equipos sí.",
+                "ca": "Útil quan un web o una seu electrònica no carrega i en altres equips sí."
+              },
               "action": "Clear-LTDnsCache"
             },
             {
               "id": "win-restart-explorer",
-              "label": "Reiniciar el Explorador de Windows",
-              "description": "Soluciona la barra de tareas o el escritorio bloqueados.",
+              "label": { "en": "Restart Windows Explorer", "es": "Reiniciar el Explorador de Windows", "ca": "Reinicia l'Explorador de Windows" },
+              "description": {
+                "en": "Fixes a frozen taskbar or desktop.",
+                "es": "Soluciona la barra de tareas o el escritorio bloqueados.",
+                "ca": "Soluciona la barra de tasques o l'escriptori bloquejats."
+              },
               "action": "Restart-LTExplorer"
             },
             {
               "id": "win-update",
-              "label": "Abrir Windows Update",
-              "description": "Abre la configuración de actualizaciones de Windows.",
+              "label": { "en": "Open Windows Update", "es": "Abrir Windows Update", "ca": "Obre Windows Update" },
+              "description": {
+                "en": "Opens the Windows update settings.",
+                "es": "Abre la configuración de actualizaciones de Windows.",
+                "ca": "Obre la configuració d'actualitzacions de Windows."
+              },
               "action": "Open-LTWindowsUpdate"
             }
           ]

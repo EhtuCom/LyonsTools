@@ -99,6 +99,19 @@
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="Margin" Value="0,2,0,0"/>
         </Style>
+        <Style x:Key="AdminTag" TargetType="Border">
+            <Setter Property="Background" Value="#FFF4E5"/>
+            <Setter Property="BorderBrush" Value="#E8B86D"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="7,0"/>
+            <Setter Property="Margin" Value="8,1,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="AdminTagText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#8A5A00"/>
+        </Style>
         <Style x:Key="ItemCheck" TargetType="CheckBox">
             <Setter Property="VerticalContentAlignment" Value="Top"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -143,6 +156,8 @@
         <Border Grid.Row="0" Background="{StaticResource Accent}" Padding="20,14">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="LangLabel" Foreground="#D6E4F0" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <ComboBox x:Name="LangBox" Width="96" Margin="0,0,14,0" VerticalAlignment="Center"/>
                     <Border Background="#33FFFFFF" CornerRadius="10" Padding="10,3" Margin="0,0,10,0">
                         <TextBlock x:Name="AdminBadge" Foreground="White" FontSize="12"/>
                     </Border>
@@ -150,7 +165,7 @@
                 </StackPanel>
                 <StackPanel>
                     <TextBlock Text="Lyons Tools" Foreground="White" FontSize="22" FontWeight="Bold"/>
-                    <TextBlock Text="Ajustes y utilidades para despachos: Windows, Office, Java y firma digital" Foreground="#D6E4F0"/>
+                    <TextBlock x:Name="Subtitle" Foreground="#D6E4F0" TextWrapping="Wrap"/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -162,11 +177,11 @@
         <!-- Action bar -->
         <Border Grid.Row="2" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="0,1" Padding="16,8">
             <DockPanel>
-                <Button x:Name="RunSelected" DockPanel.Dock="Right" Content="Ejecutar seleccionadas" Style="{StaticResource BaseButton}"/>
-                <Button x:Name="ClearSelection" DockPanel.Dock="Right" Content="Desmarcar todo" Style="{StaticResource GhostButton}" Margin="0,0,8,0"/>
+                <Button x:Name="RunSelected" DockPanel.Dock="Right" Style="{StaticResource BaseButton}"/>
+                <Button x:Name="ClearSelection" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Margin="0,0,8,0"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <ProgressBar x:Name="BusyBar" Width="90" Height="6" IsIndeterminate="True" Visibility="Collapsed" Margin="0,0,10,0"/>
-                    <TextBlock x:Name="StatusText" Text="Listo." Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="StatusText" Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -181,10 +196,10 @@
         <Border Grid.Row="4" Background="#0F1720" Padding="12,2,12,6">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <Button x:Name="CopyLog" Content="Copiar registro" Style="{StaticResource GhostButton}" Foreground="#9FB3C8"/>
-                    <Button x:Name="OpenLogs" Content="Carpeta de registros" Style="{StaticResource GhostButton}" Foreground="#9FB3C8"/>
+                    <Button x:Name="CopyLog" Style="{StaticResource GhostButton}" Foreground="#9FB3C8"/>
+                    <Button x:Name="OpenLogs" Style="{StaticResource GhostButton}" Foreground="#9FB3C8"/>
                 </StackPanel>
-                <TextBlock Text="Lyons Tools __LT_VERSION__ · soporte: ehtu.com" Foreground="#6B7C8F" FontSize="11" VerticalAlignment="Center"/>
+                <TextBlock x:Name="FooterText" Foreground="#6B7C8F" FontSize="11" VerticalAlignment="Center"/>
             </DockPanel>
         </Border>
     </Grid>

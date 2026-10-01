@@ -1,92 +1,108 @@
 # Lyons Tools
 
-Utilidades y ajustes para Windows, Office, Java y firma digital, pensadas para despachos de asesores fiscales y abogados en Cataluña. Las mantiene [ehtu.com](https://ehtu.com).
+Windows, Office, Java, PDF and digital signature utilities for law and tax firms in Catalonia (Spain), maintained by [ehtu.com](https://ehtu.com).
 
-Es un único script de PowerShell con interfaz gráfica, y no hay que instalar nada.
+A single PowerShell script with a graphical interface, nothing to install. The interface is available in **English** (default), **Español** and **Català**. The language is chosen in the window and remembered per user.
 
-## Cómo abrirlo
+## How to open it
 
-Abre **PowerShell** (botón Inicio y escribe `powershell`) y pega:
+Open **PowerShell** (Start menu, type `powershell`) and paste:
 
 ```powershell
 irm https://raw.githubusercontent.com/EhtuCom/LyonsTools/main/lyonstools.ps1 | iex
 ```
 
-También puedes descargar [`LyonsTools.cmd`](LyonsTools.cmd) y abrirlo con doble clic.
+Or download [`LyonsTools.cmd`](LyonsTools.cmd) and double-click it.
 
-No hace falta abrir PowerShell como administrador. Lyons Tools se ejecuta con tu usuario y Windows solo pide permiso de administrador en las acciones que lo necesitan (instaladores, certificados raíz y directivas de Office). Así los ajustes se aplican siempre a tu perfil, aunque sea otra cuenta la que acepta el aviso.
+PowerShell does not need to be opened as administrator. Lyons Tools runs as your user and only asks for administrator permission for the actions that need it. This way per-user settings always land in your profile, even when another account approves the prompt.
 
-## Qué incluye
+## Supported systems
+
+- Windows 10 and Windows 11
+- Windows Server 2016 / 2019 / 2022 / 2025, including **Remote Desktop / terminal servers** with standard (non-admin) users
+
+Actions marked **Administrator** are disabled for standard users, who never see a password prompt they cannot answer. On a terminal server the administrator runs those once (installers, root certificates, browser policies) and they apply to every user. Everything else works per user:
+
+| For standard users | How |
+|---|---|
+| Office AutoRecover | Saved through Office itself as the user's preference. Admins also get it locked as a policy. |
+| Root certificates (FNMT, AOC, ACA) | Installed in the user's own certificate store. Windows asks the user to confirm each root. |
+| Signador (AOC) | Uses the per-user installer. |
+| Default PDF app / default browser | Always per user. Windows requires the user to confirm the choice. |
+| Restart Explorer | Only restarts the current session, never other users' sessions. |
+
+On Windows Server without winget, Chrome and Firefox are installed from their official enterprise MSI packages.
+
+## What it includes
 
 ### Office
-| Acción | Qué hace |
-|---|---|
-| Autoguardado en Word / Excel / PowerPoint cada N minutos | Activa la autorrecuperación con el intervalo elegido. Se aplica como directiva de usuario, así que Office no puede deshacerla al cerrarse. |
-| Protección completa contra cierres inesperados | Aplica la autorrecuperación cada N minutos en las tres aplicaciones, conserva la última versión si se cierra sin guardar y activa la copia de seguridad `.wbk` en Word. |
-| Buscar documentos recuperables | Localiza archivos `.asd`, `.wbk`, `.xar` y los documentos no guardados de los últimos 30 días. |
-| Quitar los ajustes de autoguardado | Devuelve el control a *Archivo > Opciones > Guardar*. |
-| Versión de Office, actualizar Office, reparación rápida | Mantenimiento de Office Click-to-Run. |
+- **AutoRecover every N minutes** in Word, Excel and PowerPoint.
+- **Full crash protection:** AutoRecover, keeps the last version if a file is closed without saving, and Word backup copies (`.wbk`).
+- **Find recoverable documents** (`.asd`, `.wbk`, `.xar`, unsaved documents from the last 30 days).
+- **Remove the locked AutoRecover settings.**
+- Show the Office version, update Office, Quick Repair.
 
-### Firma digital
-| Acción | Qué hace |
-|---|---|
-| Configurador FNMT | Descarga la última versión desde la sede de la FNMT y la instala. |
-| Certificados raíz FNMT | Instala las raíces y las autoridades intermedias de la FNMT. Las raíces solo se instalan si su huella coincide con las raíces oficiales. |
-| Certificados raíz del Consorci AOC | Instala la jerarquía de CATCert / Consorci AOC (CA CONSORCI AOC G3, EC-ACC, EC-Ciutadania...), que necesitan el idCAT Certificat, la T-CAT y las webs de la Generalitat y los ayuntamientos. Las raíces también se comprueban por su huella. |
-| Mis certificados | Lista los certificados para firmar y avisa de los que caducan en menos de 60 días. |
-| Autofirma | Descarga la última versión desde firmaelectronica.gob.es y la instala. |
-| Signador AOC | Instala la aplicación nativa del Signador del Consorci AOC y su certificado local. |
-| Software de la T-CAT | Instala Bit4id PKI Manager, el controlador de las tarjetas T-CAT emitidas desde el 13/04/2023. |
-| Enlaces útiles | FNMT, AEAT, ATC, LexNET, VALIDe, idCAT Mòbil, e-NOTUM y el soporte del Consorci AOC. |
+### Digital signature
+- **FNMT Configurator** (latest version from the FNMT website).
+- **Root certificates** for FNMT and Consorci AOC (idCAT, T-CAT). Roots are only installed if their fingerprint matches the official ones.
+- **My certificates:** lists signing certificates and warns about those expiring within 60 days.
+- **Autofirma**, the **Signador** native app (AOC) and the **T-CAT** card software (Bit4id).
+- Links: FNMT, AEAT, ATC, VALIDe, idCAT Mòbil, e-NOTUM, AOC support.
 
-### Abogacía
-| Acción | Qué hace |
-|---|---|
-| Software de la tarjeta ACA | Instala el software Bit4id oficial del Consejo General de la Abogacía para usar el carné colegial con certificado ACA. |
-| Certificados raíz de la ACA | Instala ACA ROOT 2 (se comprueba su huella oficial) y las subordinadas ACA 1 y ACA 2. |
-| Adobe Acrobat Reader | Instala Adobe Acrobat Reader para abrir y validar los PDF firmados de notificaciones y escritos judiciales. |
-| Enlaces | LexNET, e-justícia.cat, Seu judicial, prueba del Signador, ACA Plus y el software del DNIe. |
-
-El controlador "Mini Lector ACA" de abogacia.es no se instala a propósito: su firma digital está revocada y Windows ya reconoce el lector por sí solo.
+### Legal (Abogacía / Advocacia)
+- **ACA card software (Bit4id)** and **ACA root certificates** (ACA ROOT 2 checked against its official fingerprint).
+- Links: LexNET, e-justícia.cat, the Seu judicial, a Signador test, ACA Plus, DNIe software.
+- The "Mini Lector ACA" driver from abogacia.es is deliberately **not** installed: its code signature has been revoked, and Windows recognises the reader without it.
 
 ### Java
-Comprueba la versión instalada, instala la última versión LTS de Java (Eclipse Temurin) o Java 8 de Oracle, y vacía la caché de Java.
+Check the installed version, install the latest LTS Java (Eclipse Temurin) or Oracle Java 8, clear the Java cache.
 
 ### Windows
-Muestra las extensiones de archivo, activa el historial del portapapeles (Win+V) y genera un informe del equipo para soporte. También abre Asistencia rápida, limpia los archivos temporales, vacía la caché DNS, reinicia el Explorador y abre Windows Update.
+- **Settings:** show file extensions, clipboard history (Win+V).
+- **PDF:**
+  - Install Adobe Acrobat Reader.
+  - Make Adobe the default PDF app.
+  - Make Edge, Chrome and Firefox **download PDFs and open them in Adobe** instead of their built-in viewer (`AlwaysOpenPdfExternally`, Firefox `DisableBuiltinPDFViewer`). There is also an action to undo this.
+- **Default browser:** Chrome, Edge or Firefox.
+- **Utilities:** support report, Quick Assist, clean temporary files, flush DNS, restart Explorer, Windows Update.
 
-Todas las descargas salen de las webs oficiales en el momento de usarlas, así que siempre se instala la última versión. Antes de ejecutar un instalador se comprueba su firma digital.
+Windows protects the default PDF app and default browser choices. Since Windows 10, no tool may change them silently on computers that are not in a domain. Lyons Tools opens the exact Windows dialog or Settings page so the user only has to confirm. Firefox can usually set itself as the default.
 
-## Uso sin interfaz (despliegue y soporte remoto)
+All downloads come from the official websites at the time of use, so the latest version is always installed. The digital signature of every installer is checked before it runs.
+
+## Command line (deployment and remote support)
 
 ```powershell
-# Ver los IDs disponibles
+# List the available IDs ("x" = requires administrator)
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/EhtuCom/LyonsTools/main/lyonstools.ps1))) -List
 
-# Ejecutar acciones concretas
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/EhtuCom/LyonsTools/main/lyonstools.ps1))) -Run office-crash-protection,fnmt-root-certs -Minutes 5
+# Run specific actions, in Spanish
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/EhtuCom/LyonsTools/main/lyonstools.ps1))) -Run office-crash-protection,fnmt-root-certs -Minutes 5 -Lang es
 ```
 
-Los registros se guardan en `%LOCALAPPDATA%\LyonsTools\logs`.
+Logs are kept in `%LOCALAPPDATA%\LyonsTools\logs`. The language setting is in `%LOCALAPPDATA%\LyonsTools\settings.json`.
 
-## Desarrollo
+## Development
 
 ```
-config/tools.json       Pestañas, secciones y acciones (textos de la interfaz)
-functions/<área>/*.ps1  Una función por acción (Verbo-LTNombre)
-scripts/start.ps1       Parámetros y estado compartido
-scripts/main.ps1        Punto de entrada e interfaz WPF
-xaml/MainWindow.xaml    Diseño de la ventana
-Compile.ps1             Genera lyonstools.ps1 (un solo archivo)
+config/tools.json       Tabs, sections, actions and every interface text in en/es/ca
+functions/<area>/*.ps1  One function per action (Verb-LTName)
+scripts/start.ps1       Parameters and shared state
+scripts/main.ps1        Entry point and WPF interface
+xaml/MainWindow.xaml    Window layout
+Compile.ps1             Builds lyonstools.ps1 (single file)
 ```
 
-Para añadir una utilidad:
-1. Escribe la función en `functions/`.
-2. Añade una entrada en `config/tools.json` con `"action": "NombreDeLaFunción"`.
-3. Ejecuta `.\Compile.ps1` (o `.\Compile.ps1 -Run` para probarla) y sube el `lyonstools.ps1` generado.
+To add a utility:
+1. Write the function in `functions/`. Log messages take the three languages:
+   ```powershell
+   Write-LTLog "Done." "Hecho." "Fet." -Level Ok
+   ```
+2. Add an entry to `config/tools.json` with `"action": "FunctionName"`, a `label` and a `description` in `en`, `es` and `ca`, plus `"admin": true` if it needs administrator rights.
+3. Run `.\Compile.ps1` (or `.\Compile.ps1 -Run` to try it) and commit the generated `lyonstools.ps1`.
 
-El script generado es solo ASCII: el compilador convierte los acentos. Por eso funciona igual con `irm | iex` que con Windows PowerShell 5.1. En los `.ps1` el texto con acentos tiene que ir entre comillas dobles; el compilador avisa si no es así.
+The compiler rejects missing translations. It also converts accents so the generated script is pure ASCII and works the same with `irm | iex` and with Windows PowerShell 5.1. In `.ps1` files, accented text must be inside double quotes.
 
-## Licencia
+## License
 
-MIT. Lo usas bajo tu responsabilidad.
+MIT. Use at your own risk.

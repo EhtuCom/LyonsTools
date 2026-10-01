@@ -1,26 +1,31 @@
 <#
 .SYNOPSIS
-    Lyons Tools - utilidades para Windows, Office, Java y firma digital (ehtu.com)
+    Lyons Tools - Windows, Office, Java and digital signature utilities (ehtu.com)
 
 .PARAMETER Run
-    Ejecuta acciones sin abrir la interfaz. IDs separados por comas (ver -List).
-    Ejemplo: -Run office-crash-protection,java-check
+    Runs actions without opening the window. Comma-separated IDs (see -List).
+    Example: -Run office-crash-protection,java-check
 
 .PARAMETER Minutes
-    Intervalo de autoguardado en minutos para las acciones de Office (1-120, por defecto 5).
+    AutoRecover interval in minutes for the Office actions (1-120, default 5).
+
+.PARAMETER Lang
+    Interface language: en (English, default), es (Español) or ca (Català).
+    The choice made in the window is remembered per user.
 
 .PARAMETER List
-    Muestra los IDs de todas las acciones disponibles.
+    Lists the IDs of all available actions.
 
 .EXAMPLE
     irm https://raw.githubusercontent.com/__LT_REPO__/main/lyonstools.ps1 | iex
 
 .EXAMPLE
-    & ([scriptblock]::Create((irm https://raw.githubusercontent.com/__LT_REPO__/main/lyonstools.ps1))) -Run office-crash-protection -Minutes 3
+    & ([scriptblock]::Create((irm https://raw.githubusercontent.com/__LT_REPO__/main/lyonstools.ps1))) -Run office-crash-protection -Minutes 3 -Lang es
 #>
 param(
     [string[]]$Run,
     [ValidateRange(1, 120)][int]$Minutes = 5,
+    [ValidateSet('', 'en', 'es', 'ca')][string]$Lang = '',
     [switch]$List
 )
 
@@ -33,3 +38,14 @@ $LT.UserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (K
 $LT.OfficePolicyRoot = 'Software\Policies\Microsoft\Office\16.0'
 $LT.Gui = $false
 $LT.Busy = $false
+
+# Per-user settings (language), kept in the user's profile so it also works on terminal servers.
+$LT.DataDir = Join-Path $env:LOCALAPPDATA 'LyonsTools'
+$LT.SettingsFile = Join-Path $LT.DataDir 'settings.json'
+$LT.Settings = $null
+try { $LT.Settings = Get-Content -LiteralPath $LT.SettingsFile -Raw -ErrorAction Stop | ConvertFrom-Json } catch { }
+$LT.Lang = if ($Lang) { $Lang } elseif ($LT.Settings.lang -in 'en', 'es', 'ca') { $LT.Settings.lang } else { 'en' }
+
+# Environment: Windows 10/11 vs Windows Server, terminal server session, admin rights.
+$LT.IsServer = (Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue).ProductType -ne 1
+$LT.IsRemoteSession = [bool]($env:SESSIONNAME -like 'RDP-*')
