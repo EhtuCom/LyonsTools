@@ -65,7 +65,8 @@ Check the installed version, install the latest LTS Java (Eclipse Temurin) or Or
 - **Settings:** show file extensions, clipboard history (Win+V).
 - **PDF:**
   - Install Adobe Acrobat Reader.
-  - Make Adobe the default PDF app.
+  - Make Adobe the default PDF app, using the right method for each Windows version, then confirm the change.
+  - Test: open a PDF with the default app.
   - Make Edge, Chrome and Firefox **download PDFs and open them in Adobe** instead of their built-in viewer (`AlwaysOpenPdfExternally`, Firefox `DisableBuiltinPDFViewer`). There is also an action to undo this.
 - **Default browser:** Chrome, Edge or Firefox.
 - **Utilities:** support report, Quick Assist, clean temporary files, flush DNS, restart Explorer, Windows Update.

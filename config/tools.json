@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Lyons Tools",
-    "version": "1.3.3",
+    "version": "1.3.4",
     "repo": "EhtuCom/LyonsTools",
     "publisher": "ehtu.com",
     "publisherUrl": "https://ehtu.com",
@@ -476,6 +476,16 @@
                 "ca": "Windows demana confirmar-ho: tria 'Adobe Acrobat' i 'Sempre' a la finestra que s'obre. Per usuari."
               },
               "action": "Set-LTAdobeDefaultPdf"
+            },
+            {
+              "id": "pdf-test",
+              "label": { "en": "Test: open a PDF with the default app", "es": "Prueba: abrir un PDF con la aplicación predeterminada", "ca": "Prova: obre un PDF amb l'aplicació predeterminada" },
+              "description": {
+                "en": "Shows which app opens PDF files and opens a test PDF with it.",
+                "es": "Muestra qué aplicación abre los PDF y abre un PDF de prueba con ella.",
+                "ca": "Mostra quina aplicació obre els PDF i hi obre un PDF de prova."
+              },
+              "action": "Open-LTPdfTest"
             },
             {
               "id": "pdf-browser-download",

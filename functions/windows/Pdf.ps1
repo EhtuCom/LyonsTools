@@ -8,58 +8,164 @@ function Get-LTAdobeProgId {
     $null
 }
 
+function Get-LTPdfDefault {
+    (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.pdf\UserChoice' -ErrorAction SilentlyContinue).ProgId
+}
+
+function Get-LTPdfAppName([string]$ProgId) {
+    switch -Regex ($ProgId) {
+        '^(Acrobat|AcroExch)\.' { 'Adobe Acrobat' }
+        '^MSEdgePDF' { 'Microsoft Edge' }
+        '^Chrome' { 'Google Chrome' }
+        '^FirefoxPDF' { 'Mozilla Firefox' }
+        '^$' { Get-LTString 'not set (Windows default)' 'sin definir (predeterminado de Windows)' "sense definir (predeterminat de Windows)" }
+        default { $ProgId }
+    }
+}
+
+function Get-LTAdobeReaderUrl {
+    <#
+        Current official Adobe Reader 64-bit installer (ardownload*.adobe.com), taken from the
+        winget package catalogue on GitHub. Used on computers without winget (e.g. Windows Server).
+    #>
+    $headers = @{ 'User-Agent' = 'LyonsTools' }
+    $base = 'https://api.github.com/repos/microsoft/winget-pkgs/contents/manifests/a/Adobe/Acrobat/Reader/64-bit'
+    # Assigned first: in Windows PowerShell 5.1 Invoke-RestMethod does not enumerate arrays into the pipeline.
+    $dirs = Invoke-RestMethod -Uri $base -UseBasicParsing -Headers $headers -ErrorAction Stop
+    $latest = $dirs | Where-Object type -eq 'dir' | Sort-Object { [version]($_.name -replace '[^\d.]', '') } | Select-Object -Last 1
+    $files = Invoke-RestMethod -Uri $latest.url -UseBasicParsing -Headers $headers -ErrorAction Stop
+    $installer = $files | Where-Object name -like '*.installer.yaml' | Select-Object -First 1
+    $yaml = (Invoke-WebRequest -Uri $installer.download_url -UseBasicParsing -ErrorAction Stop).Content
+    $url = [regex]::Match($yaml, 'InstallerUrl:\s*(https://ardownload\d*\.adobe\.com/\S+\.exe)').Groups[1].Value
+    if (-not $url) { throw 'Adobe installer URL not found' }
+    [pscustomobject]@{ Version = $latest.name; Url = $url }
+}
+
 function Install-LTAdobeReader {
     <# Court notifications, tax forms and signed filings are PDFs whose signatures Adobe Reader can validate. #>
     if (Install-LTWinget -Id 'Adobe.Acrobat.Reader.64-bit') {
         Write-LTLog "Adobe Acrobat Reader installed or already up to date." "Adobe Acrobat Reader instalado o ya actualizado." "Adobe Acrobat Reader instal·lat o ja actualitzat." -Level Ok
         return
     }
-    Open-LTUrl 'https://get.adobe.com/reader/'
+    # No winget (Windows Server): official Adobe installer.
+    try {
+        $reader = Get-LTAdobeReaderUrl
+        $v = $reader.Version
+        Write-LTLog "Downloading Adobe Acrobat Reader $v (about 800 MB, it may take a while)..." `
+            "Descargando Adobe Acrobat Reader $v (unos 800 MB, puede tardar)..." `
+            "Descarregant Adobe Acrobat Reader $v (uns 800 MB, pot trigar)..."
+        $file = Save-LTFile -Url $reader.Url
+    }
+    catch {
+        $err = $_.Exception.Message
+        Write-LTLog "Adobe Reader could not be downloaded ($err). Opening the official page." `
+            "No se ha podido descargar Adobe Reader ($err). Abriendo la página oficial." `
+            "No s'ha pogut descarregar Adobe Reader ($err). Obrint la pàgina oficial." -Level Warn
+        Open-LTUrl 'https://get.adobe.com/reader/enterprise/'
+        return
+    }
+    if (-not (Test-LTSignature -Path $file)) { return }
+    # Adobe's documented switches: progress bar only, no restart.
+    [void](Start-LTInstaller -Path $file -Arguments '/sPB /rs /msi')
+}
+
+function New-LTSamplePdf {
+    <# Writes a small, valid one-page PDF (with a correct xref table) and returns its path. #>
+    $content = "BT /F1 22 Tf 72 760 Td (Lyons Tools - PDF test) Tj 0 -34 Td /F1 12 Tf (If you can read this, PDF files open correctly. ehtu.com) Tj ET"
+    $objects = @(
+        '<< /Type /Catalog /Pages 2 0 R >>',
+        '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+        '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+        "<< /Length $($content.Length) >>`nstream`n$content`nendstream",
+        '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
+    )
+    $sb = [Text.StringBuilder]::new("%PDF-1.4`n")
+    $offsets = foreach ($i in 0..($objects.Count - 1)) {
+        $sb.Length
+        [void]$sb.Append("$($i + 1) 0 obj`n$($objects[$i])`nendobj`n")
+    }
+    $xref = $sb.Length
+    [void]$sb.Append("xref`n0 $($objects.Count + 1)`n0000000000 65535 f `n")
+    foreach ($o in $offsets) { [void]$sb.Append(('{0:D10} 00000 n ' -f $o) + "`n") }
+    [void]$sb.Append("trailer`n<< /Size $($objects.Count + 1) /Root 1 0 R >>`nstartxref`n$xref`n%%EOF`n")
+
+    $path = Join-Path (Get-LTWorkFolder) 'LyonsTools-test.pdf'
+    [IO.File]::WriteAllText($path, $sb.ToString(), [Text.Encoding]::ASCII)
+    $path
 }
 
 function Set-LTAdobeDefaultPdf {
     <#
-        Windows protects file associations (UserChoice hash), so no tool may set the default app
-        silently on non-domain computers. We check the current choice and, if needed, open the
-        Windows "Open with" dialog on a sample PDF so the user picks Adobe Acrobat + "Always".
+        Windows requires the user to confirm the default PDF app. Depending on the OS we open:
+          Windows 11 / Server 2025         : Settings on Adobe's page ("Set default")
+          Windows 10 / Server 2016-2022    : the "Open with" dialog for a sample PDF ("Always use this app")
+        and then wait up to 2 minutes to confirm the change.
     #>
     $progId = Get-LTAdobeProgId
     if (-not $progId) {
+        if (-not $LT.CanElevate) {
+            Write-LTLog "Adobe Acrobat Reader is not installed and installing it requires an administrator." `
+                "Adobe Acrobat Reader no está instalado y para instalarlo hace falta un administrador." `
+                "Adobe Acrobat Reader no està instal·lat i per instal·lar-lo cal un administrador." -Level Warn
+            return
+        }
         Write-LTLog "Adobe Acrobat Reader is not installed. Installing it first..." "Adobe Acrobat Reader no está instalado. Se instala primero..." "Adobe Acrobat Reader no està instal·lat. S'instal·la primer..." -Level Warn
         Install-LTAdobeReader
         $progId = Get-LTAdobeProgId
         if (-not $progId) { return }
     }
 
-    $current = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.pdf\UserChoice' -ErrorAction SilentlyContinue).ProgId
+    $current = Get-LTPdfDefault
     if ($current -match '^(Acrobat|AcroExch)\.') {
         Write-LTLog "Adobe Acrobat is already the default app for PDF files." "Adobe Acrobat ya es la aplicación predeterminada para los PDF." "Adobe Acrobat ja és l'aplicació predeterminada per als PDF." -Level Ok
         return
     }
-    if ($current) {
-        Write-LTLog "PDF files currently open with: $current" "Los PDF se abren ahora con: $current" "Els PDF s'obren ara amb: $current"
-    }
+    $now = Get-LTPdfAppName $current
+    Write-LTLog "PDF files currently open with: $now" "Los PDF se abren ahora con: $now" "Els PDF s'obren ara amb: $now"
+    [void](Test-LTAssociationPolicy)
 
-    # Smallest valid PDF, just so Windows shows the "Open with" dialog for .pdf
-    $sample = Join-Path (Get-LTWorkFolder) 'LyonsTools.pdf'
-    $pdf = "%PDF-1.4`n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj`n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj`n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj`ntrailer<</Root 1 0 R>>`n%%EOF"
-    [IO.File]::WriteAllText($sample, $pdf, [Text.Encoding]::ASCII)
+    $build = [Environment]::OSVersion.Version.Build
+    $registered = $null
+    $props = Get-ItemProperty 'HKLM:\SOFTWARE\RegisteredApplications' -ErrorAction SilentlyContinue
+    if ($props) { $registered = $props.PSObject.Properties.Name | Where-Object { $_ -match '^Adobe Acrobat' } | Select-Object -First 1 }
 
-    Write-LTLog "In the window that opens choose 'Adobe Acrobat' and press 'Always' (or tick 'Always use this app')." `
-        "En la ventana que se abre elige 'Adobe Acrobat' y pulsa 'Siempre' (o marca 'Usar siempre esta aplicación')." `
-        "A la finestra que s'obre tria 'Adobe Acrobat' i prem 'Sempre' (o marca 'Utilitza sempre aquesta aplicació')." -Level Step
-    Start-Process rundll32.exe -ArgumentList "shell32.dll,OpenAs_RunDLL $sample" -Wait
-    Start-Sleep -Seconds 1
-
-    $current = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.pdf\UserChoice' -ErrorAction SilentlyContinue).ProgId
-    if ($current -match '^(Acrobat|AcroExch)\.') {
-        Write-LTLog "Done: PDF files will open with Adobe Acrobat." "Hecho: los PDF se abrirán con Adobe Acrobat." "Fet: els PDF s'obriran amb Adobe Acrobat." -Level Ok
+    if ($build -ge 22000 -and $registered) {
+        Start-Process "ms-settings:defaultapps?registeredAppMachine=$([Uri]::EscapeDataString($registered))"
+        Write-LTLog "Settings has opened on the Adobe Acrobat page: press 'Set default' at the top." `
+            "Se ha abierto Configuración en la página de Adobe Acrobat: pulsa 'Establecer como predeterminado' arriba." `
+            "S'ha obert Configuració a la pàgina d'Adobe Acrobat: prem 'Estableix com a predeterminat' a dalt." -Level Step
     }
     else {
-        Write-LTLog "Adobe is not the default yet. You can also change it in Settings > Apps > Default apps > .pdf." `
-            "Adobe todavía no es la predeterminada. También se puede cambiar en Configuración > Aplicaciones > Aplicaciones predeterminadas > .pdf." `
-            "Adobe encara no és la predeterminada. També es pot canviar a Configuració > Aplicacions > Aplicacions predeterminades > .pdf." -Level Warn
+        $sample = New-LTSamplePdf
+        # Not -Wait: on Windows 10 / Server the dialog runs in a separate process and rundll32 returns at once.
+        Start-Process rundll32.exe -ArgumentList "shell32.dll,OpenAs_RunDLL $sample"
+        Write-LTLog "In the 'How do you want to open this file?' window: tick 'Always use this app to open .pdf files', choose 'Adobe Acrobat' and press OK." `
+            "En la ventana '¿Cómo quieres abrir este archivo?': marca 'Usar siempre esta aplicación para abrir los archivos .pdf', elige 'Adobe Acrobat' y pulsa Aceptar." `
+            "A la finestra 'Com vols obrir aquest fitxer?': marca 'Utilitza sempre aquesta aplicació per obrir els fitxers .pdf', tria 'Adobe Acrobat' i prem D'acord." -Level Step
     }
+
+    Write-LTLog "Waiting for the change (up to 2 minutes)..." "Esperando el cambio (hasta 2 minutos)..." "Esperant el canvi (fins a 2 minuts)..."
+    $deadline = (Get-Date).AddMinutes(2)
+    while ((Get-Date) -lt $deadline) {
+        if ((Get-LTPdfDefault) -match '^(Acrobat|AcroExch)\.') {
+            Write-LTLog "Done: PDF files will open with Adobe Acrobat." "Hecho: los PDF se abrirán con Adobe Acrobat." "Fet: els PDF s'obriran amb Adobe Acrobat." -Level Ok
+            return
+        }
+        Start-Sleep -Seconds 2
+    }
+    Write-LTLog "Adobe is not the default yet. You can also change it in Settings > Apps > Default apps > Choose default apps by file type > .pdf, then use the PDF 'Test' button." `
+        "Adobe todavía no es la predeterminada. También se puede cambiar en Configuración > Aplicaciones > Aplicaciones predeterminadas > Elegir aplicaciones predeterminadas por tipo de archivo > .pdf, y después usar el botón 'Prueba' de PDF." `
+        "Adobe encara no és la predeterminada. També es pot canviar a Configuració > Aplicacions > Aplicacions predeterminades > Tria les aplicacions predeterminades per tipus de fitxer > .pdf, i després fer servir el botó 'Prova' de PDF." -Level Warn
+}
+
+function Open-LTPdfTest {
+    <# Shows which app opens PDF files and opens a test PDF with it. #>
+    $name = Get-LTPdfAppName (Get-LTPdfDefault)
+    Write-LTLog "PDF files open with: $name" "Los PDF se abren con: $name" "Els PDF s'obren amb: $name" -Level Ok
+    [void](Test-LTAssociationPolicy)
+    $sample = New-LTSamplePdf
+    Write-LTLog "Opening a test PDF with the default app..." "Abriendo un PDF de prueba con la aplicación predeterminada..." "Obrint un PDF de prova amb l'aplicació predeterminada..."
+    Start-Process $sample
 }
 
 function Set-LTBrowserPdfDownload {
