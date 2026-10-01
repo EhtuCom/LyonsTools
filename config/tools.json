@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Lyons Tools",
-    "version": "1.3.0",
+    "version": "1.3.1",
     "repo": "EhtuCom/LyonsTools",
     "publisher": "ehtu.com",
     "publisherUrl": "https://ehtu.com",
@@ -488,6 +488,16 @@
                 "ca": "Instal·la Firefox si cal (administrador). Firefox normalment es configura sol; si no, Windows demana confirmar-ho. Per usuari."
               },
               "action": "Set-LTDefaultBrowserFirefox"
+            },
+            {
+              "id": "browser-default-test",
+              "label": { "en": "Test: open ehtu.com in the default browser", "es": "Prueba: abrir ehtu.com con el navegador predeterminado", "ca": "Prova: obre ehtu.com amb el navegador predeterminat" },
+              "description": {
+                "en": "Shows which browser is the default and opens the ehtu.com website with it.",
+                "es": "Muestra cuál es el navegador predeterminado y abre la web de ehtu.com con él.",
+                "ca": "Mostra quin és el navegador predeterminat i hi obre el web d'ehtu.com."
+              },
+              "action": "Open-LTDefaultBrowserTest"
             }
           ]
         },

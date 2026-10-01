@@ -1,9 +1,9 @@
 <#
-    Lyons Tools 1.3.0 - utilidades de Windows, Office, Java y firma digital
+    Lyons Tools 1.3.1 - utilidades de Windows, Office, Java y firma digital
     https://github.com/EhtuCom/LyonsTools  |  https://ehtu.com
 
     GENERATED FILE - DO NOT EDIT. Edit the sources and run Compile.ps1.
-    Built 2026-10-01 08:16
+    Built 2026-10-01 08:17
 #>
 
 <#
@@ -38,7 +38,7 @@ param(
 )
 
 $LT = [hashtable]::Synchronized(@{})
-$LT.Version = '1.3.0'
+$LT.Version = '1.3.1'
 $LT.Repo = 'EhtuCom/LyonsTools'
 $LT.SourceUrl = 'https://raw.githubusercontent.com/EhtuCom/LyonsTools/main/lyonstools.ps1'
 # A regular browser user agent: some official sites (abogacia.es) block unknown clients.
@@ -1313,6 +1313,22 @@ function Set-LTDefaultBrowser {
     }
 }
 
+function Open-LTDefaultBrowserTest {
+    <# Shows which browser is the default and opens ehtu.com with it, to confirm the change worked. #>
+    $progId = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice' -ErrorAction SilentlyContinue).ProgId
+    $name = switch -Regex ($progId) {
+        '^ChromeHTML' { 'Google Chrome' }
+        '^MSEdgeHTM' { 'Microsoft Edge' }
+        '^FirefoxURL' { 'Mozilla Firefox' }
+        '^$' { Get-LTString 'not set (Windows uses Microsoft Edge)' 'sin definir (Windows usa Microsoft Edge)' "sense definir (Windows fa servir Microsoft Edge)" }
+        default { $progId }
+    }
+    Write-LTLog "Current default browser: $name" "Navegador predeterminado actual: $name" "Navegador predeterminat actual: $name" -Level Ok
+    $url = $LT.Config.app.publisherUrl
+    Write-LTLog "Opening $url with the default browser..." "Abriendo $url con el navegador predeterminado..." "Obrint $url amb el navegador predeterminat..."
+    Start-Process $url
+}
+
 function Set-LTDefaultBrowserChrome { Set-LTDefaultBrowser -Browser Chrome }
 function Set-LTDefaultBrowserEdge { Set-LTDefaultBrowser -Browser Edge }
 function Set-LTDefaultBrowserFirefox { Set-LTDefaultBrowser -Browser Firefox }
@@ -1581,7 +1597,7 @@ $LTConfigJson = @'
 {
   "app": {
     "name": "Lyons Tools",
-    "version": "1.3.0",
+    "version": "1.3.1",
     "repo": "EhtuCom/LyonsTools",
     "publisher": "ehtu.com",
     "publisherUrl": "https://ehtu.com",
@@ -2068,6 +2084,16 @@ $LTConfigJson = @'
                 "ca": "Instal\u00b7la Firefox si cal (administrador). Firefox normalment es configura sol; si no, Windows demana confirmar-ho. Per usuari."
               },
               "action": "Set-LTDefaultBrowserFirefox"
+            },
+            {
+              "id": "browser-default-test",
+              "label": { "en": "Test: open ehtu.com in the default browser", "es": "Prueba: abrir ehtu.com con el navegador predeterminado", "ca": "Prova: obre ehtu.com amb el navegador predeterminat" },
+              "description": {
+                "en": "Shows which browser is the default and opens the ehtu.com website with it.",
+                "es": "Muestra cu\u00e1l es el navegador predeterminado y abre la web de ehtu.com con \u00e9l.",
+                "ca": "Mostra quin \u00e9s el navegador predeterminat i hi obre el web d'ehtu.com."
+              },
+              "action": "Open-LTDefaultBrowserTest"
             }
           ]
         },

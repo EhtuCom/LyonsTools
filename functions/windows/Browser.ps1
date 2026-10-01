@@ -107,6 +107,22 @@ function Set-LTDefaultBrowser {
     }
 }
 
+function Open-LTDefaultBrowserTest {
+    <# Shows which browser is the default and opens ehtu.com with it, to confirm the change worked. #>
+    $progId = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice' -ErrorAction SilentlyContinue).ProgId
+    $name = switch -Regex ($progId) {
+        '^ChromeHTML' { 'Google Chrome' }
+        '^MSEdgeHTM' { 'Microsoft Edge' }
+        '^FirefoxURL' { 'Mozilla Firefox' }
+        '^$' { Get-LTString 'not set (Windows uses Microsoft Edge)' 'sin definir (Windows usa Microsoft Edge)' "sense definir (Windows fa servir Microsoft Edge)" }
+        default { $progId }
+    }
+    Write-LTLog "Current default browser: $name" "Navegador predeterminado actual: $name" "Navegador predeterminat actual: $name" -Level Ok
+    $url = $LT.Config.app.publisherUrl
+    Write-LTLog "Opening $url with the default browser..." "Abriendo $url con el navegador predeterminado..." "Obrint $url amb el navegador predeterminat..."
+    Start-Process $url
+}
+
 function Set-LTDefaultBrowserChrome { Set-LTDefaultBrowser -Browser Chrome }
 function Set-LTDefaultBrowserEdge { Set-LTDefaultBrowser -Browser Edge }
 function Set-LTDefaultBrowserFirefox { Set-LTDefaultBrowser -Browser Firefox }
