@@ -94,6 +94,41 @@ function New-LTSamplePdf {
     $path
 }
 
+function Show-LTOpenWithDialog {
+    <#
+        Shows Windows' "Open with" dialog for a file through SHOpenWithDialog and waits for it.
+        OAIF_REGISTER_EXT | OAIF_EXEC | OAIF_FORCE_REGISTRATION: the app the user picks is saved
+        as the default for that file type and the file is opened with it.
+        Returns 'ok', 'cancelled' or the HRESULT.
+    #>
+    param([Parameter(Mandatory)][string]$Path)
+    if (-not ('LTOpenWith' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class LTOpenWith {
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    struct OPENASINFO { public string pcszFile; public string pcszClass; public int oaifInFlags; }
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    static extern int SHOpenWithDialog(IntPtr hwndParent, ref OPENASINFO info);
+    public static int Show(string file, int flags) {
+        OPENASINFO info = new OPENASINFO();
+        info.pcszFile = file;
+        info.pcszClass = null;
+        info.oaifInFlags = flags;
+        return SHOpenWithDialog(IntPtr.Zero, ref info);
+    }
+}
+'@
+    }
+    $hr = [LTOpenWith]::Show($Path, 0x2 -bor 0x4 -bor 0x8)
+    switch ($hr) {
+        0 { 'ok' }
+        -2147023673 { 'cancelled' }   # HRESULT_FROM_WIN32(ERROR_CANCELLED)
+        default { '0x{0:X8}' -f $hr }
+    }
+}
+
 function Set-LTAdobeDefaultPdf {
     <#
         Windows requires the user to confirm the default PDF app. Depending on the OS we open:
@@ -136,12 +171,21 @@ function Set-LTAdobeDefaultPdf {
             "S'ha obert Configuració a la pàgina d'Adobe Acrobat: prem 'Estableix com a predeterminat' a dalt." -Level Step
     }
     else {
-        $sample = New-LTSamplePdf
-        # Not -Wait: on Windows 10 / Server the dialog runs in a separate process and rundll32 returns at once.
-        Start-Process rundll32.exe -ArgumentList "shell32.dll,OpenAs_RunDLL $sample"
-        Write-LTLog "In the 'How do you want to open this file?' window: tick 'Always use this app to open .pdf files', choose 'Adobe Acrobat' and press OK." `
-            "En la ventana '¿Cómo quieres abrir este archivo?': marca 'Usar siempre esta aplicación para abrir los archivos .pdf', elige 'Adobe Acrobat' y pulsa Aceptar." `
-            "A la finestra 'Com vols obrir aquest fitxer?': marca 'Utilitza sempre aquesta aplicació per obrir els fitxers .pdf', tria 'Adobe Acrobat' i prem D'acord." -Level Step
+        # Windows' own "Open with" dialog, asked to save the choice as the default for .pdf.
+        # (rundll32 OpenAs_RunDLL shows the same list but without the "always use this app" option.)
+        Write-LTLog "In the 'How do you want to open this file?' window choose 'Adobe Acrobat' and press OK: it will become the default for PDF files." `
+            "En la ventana '¿Cómo quieres abrir este archivo?' elige 'Adobe Acrobat' y pulsa Aceptar: quedará como predeterminada para los PDF." `
+            "A la finestra 'Com vols obrir aquest fitxer?' tria 'Adobe Acrobat' i prem D'acord: quedarà com a predeterminada per als PDF." -Level Step
+        $result = Show-LTOpenWithDialog -Path (New-LTSamplePdf)
+        if ((Get-LTPdfDefault) -match '^(Acrobat|AcroExch)\.') {
+            Write-LTLog "Done: PDF files will open with Adobe Acrobat." "Hecho: los PDF se abrirán con Adobe Acrobat." "Fet: els PDF s'obriran amb Adobe Acrobat." -Level Ok
+            return
+        }
+        # Backup: the Settings page, where the user picks Adobe for .pdf.
+        Start-Process 'ms-settings:defaultapps'
+        Write-LTLog "Not changed yet ($result). In Settings > Default apps > Choose default apps by file type, set '.pdf' to Adobe Acrobat." `
+            "Todavía no ha cambiado ($result). En Configuración > Aplicaciones predeterminadas > Elegir aplicaciones predeterminadas por tipo de archivo, pon '.pdf' con Adobe Acrobat." `
+            "Encara no ha canviat ($result). A Configuració > Aplicacions predeterminades > Tria les aplicacions predeterminades per tipus de fitxer, posa '.pdf' amb Adobe Acrobat." -Level Step
     }
 
     Write-LTLog "Waiting for the change (up to 2 minutes)..." "Esperando el cambio (hasta 2 minutos)..." "Esperant el canvi (fins a 2 minuts)..."

@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Lyons Tools",
-    "version": "1.3.4",
+    "version": "1.3.5",
     "repo": "EhtuCom/LyonsTools",
     "publisher": "ehtu.com",
     "publisherUrl": "https://ehtu.com",
@@ -471,9 +471,9 @@
               "id": "pdf-default-adobe",
               "label": { "en": "Make Adobe Reader the default PDF app", "es": "Hacer Adobe Reader la aplicación predeterminada para PDF", "ca": "Fes d'Adobe Reader l'aplicació predeterminada per als PDF" },
               "description": {
-                "en": "Windows asks you to confirm it: choose 'Adobe Acrobat' and 'Always' in the window that opens. Per user.",
-                "es": "Windows pide confirmarlo: elige 'Adobe Acrobat' y 'Siempre' en la ventana que se abre. Por usuario.",
-                "ca": "Windows demana confirmar-ho: tria 'Adobe Acrobat' i 'Sempre' a la finestra que s'obre. Per usuari."
+                "en": "Opens Windows' 'Open with' window: choose Adobe Acrobat and press OK, and it becomes the default for PDF files. Per user.",
+                "es": "Abre la ventana 'Abrir con' de Windows: elige Adobe Acrobat y pulsa Aceptar, y queda como predeterminada para los PDF. Por usuario.",
+                "ca": "Obre la finestra 'Obre amb' de Windows: tria Adobe Acrobat i prem D'acord, i queda com a predeterminada per als PDF. Per usuari."
               },
               "action": "Set-LTAdobeDefaultPdf"
             },
