@@ -47,6 +47,10 @@ On Windows Server without winget, Chrome and Firefox are installed from their of
 - **Root certificates** for FNMT and Consorci AOC (idCAT, T-CAT). Roots are only installed if their fingerprint matches the official ones.
 - **My certificates:** lists signing certificates and warns about those expiring within 60 days.
 - **Autofirma**, the **Signador** native app (AOC) and the **T-CAT** card software (Bit4id).
+- **Check that it works:**
+  - The official Signador test page (AOC).
+  - A test signature and certificate validation on VALIDe.
+  - The FNMT certificate status check.
 - Links: FNMT, AEAT, ATC, VALIDe, idCAT Mòbil, e-NOTUM, AOC support.
 
 ### Legal (Abogacía / Advocacia)

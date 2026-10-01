@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Lyons Tools",
-    "version": "1.3.1",
+    "version": "1.3.2",
     "repo": "EhtuCom/LyonsTools",
     "publisher": "ehtu.com",
     "publisherUrl": "https://ehtu.com",
@@ -264,6 +264,51 @@
                 "ca": "Controlador per fer servir la T-CAT en targeta amb un lector (targetes emeses des del 13/04/2023). Substitueix l'antic SafeSign."
               },
               "action": "Install-LTTcatMiddleware"
+            }
+          ]
+        },
+        {
+          "title": { "en": "Check that it works", "es": "Comprobar que funciona", "ca": "Comprova que funciona" },
+          "items": [
+            {
+              "id": "test-signador",
+              "label": { "en": "Test the Signador (Consorci AOC)", "es": "Probar el Signador (Consorci AOC)", "ca": "Prova el Signador (Consorci AOC)" },
+              "description": {
+                "en": "Official AOC test page: checks that the Signador native app is installed and can sign with your certificate.",
+                "es": "Página de prueba oficial del AOC: comprueba que la aplicación nativa del Signador está instalada y puede firmar con tu certificado.",
+                "ca": "Pàgina de prova oficial de l'AOC: comprova que l'aplicació nativa del Signador està instal·lada i pot signar amb el teu certificat."
+              },
+              "url": "https://signador.aoc.cat/signador/testNativa"
+            },
+            {
+              "id": "test-autofirma",
+              "label": { "en": "Make a test signature (VALIDe)", "es": "Hacer una firma de prueba (VALIDe)", "ca": "Fes una signatura de prova (VALIDe)" },
+              "description": {
+                "en": "Spanish Government service: sign any document with your certificate to check that the signing client (Autofirma) works.",
+                "es": "Servicio del Gobierno de España: firma cualquier documento con tu certificado para comprobar que el cliente de firma (Autofirma) funciona.",
+                "ca": "Servei del Govern d'Espanya: signa qualsevol document amb el teu certificat per comprovar que el client de signatura (Autofirma) funciona."
+              },
+              "url": "https://valide.redsara.es/valide/firmar/ejecutar.html"
+            },
+            {
+              "id": "test-certificate",
+              "label": { "en": "Check that my certificate is valid (VALIDe)", "es": "Comprobar que mi certificado es válido (VALIDe)", "ca": "Comprova que el meu certificat és vàlid (VALIDe)" },
+              "description": {
+                "en": "Validates any certificate (FNMT, idCAT, ACA, DNIe...): not expired, not revoked and issued by a recognised authority.",
+                "es": "Valida cualquier certificado (FNMT, idCAT, ACA, DNIe...): que no esté caducado ni revocado y que lo emita una autoridad reconocida.",
+                "ca": "Valida qualsevol certificat (FNMT, idCAT, ACA, DNIe...): que no estigui caducat ni revocat i que l'emeti una autoritat reconeguda."
+              },
+              "url": "https://valide.redsara.es/valide/validarCertificado/ejecutar.html"
+            },
+            {
+              "id": "test-fnmt",
+              "label": { "en": "Check the status of my FNMT certificate", "es": "Verificar el estado de mi certificado FNMT", "ca": "Verifica l'estat del meu certificat FNMT" },
+              "description": {
+                "en": "FNMT page to check whether your FNMT individual certificate is valid, revoked or suspended.",
+                "es": "Página de la FNMT para comprobar si tu certificado de persona física está vigente, revocado o suspendido.",
+                "ca": "Pàgina de la FNMT per comprovar si el teu certificat de persona física és vigent, revocat o suspès."
+              },
+              "url": "https://www.sede.fnmt.gob.es/certificados/persona-fisica/verificar-estado"
             }
           ]
         },
