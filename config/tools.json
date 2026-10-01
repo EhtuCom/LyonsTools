@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Lyons Tools",
-    "version": "1.3.2",
+    "version": "1.3.3",
     "repo": "EhtuCom/LyonsTools",
     "publisher": "ehtu.com",
     "publisherUrl": "https://ehtu.com",
@@ -508,9 +508,9 @@
               "id": "browser-default-chrome",
               "label": { "en": "Make Google Chrome the default browser", "es": "Hacer Google Chrome el navegador predeterminado", "ca": "Fes de Google Chrome el navegador predeterminat" },
               "description": {
-                "en": "Installs Chrome if needed (administrator). Windows asks you to confirm it with 'Set default'. Per user.",
-                "es": "Instala Chrome si hace falta (administrador). Windows pide confirmarlo con 'Establecer como predeterminado'. Por usuario.",
-                "ca": "Instal·la Chrome si cal (administrador). Windows demana confirmar-ho amb 'Estableix com a predeterminat'. Per usuari."
+                "en": "Installs Chrome if needed (administrator). Opens Windows Settings to confirm the choice and checks that it changed. Per user.",
+                "es": "Instala Chrome si hace falta (administrador). Abre Configuración de Windows para confirmar la elección y comprueba que ha cambiado. Por usuario.",
+                "ca": "Instal·la Chrome si cal (administrador). Obre Configuració de Windows per confirmar l'elecció i comprova que ha canviat. Per usuari."
               },
               "action": "Set-LTDefaultBrowserChrome"
             },
@@ -518,9 +518,9 @@
               "id": "browser-default-edge",
               "label": { "en": "Make Microsoft Edge the default browser", "es": "Hacer Microsoft Edge el navegador predeterminado", "ca": "Fes de Microsoft Edge el navegador predeterminat" },
               "description": {
-                "en": "Windows asks you to confirm it with 'Set default'. Per user.",
-                "es": "Windows pide confirmarlo con 'Establecer como predeterminado'. Por usuario.",
-                "ca": "Windows demana confirmar-ho amb 'Estableix com a predeterminat'. Per usuari."
+                "en": "Opens Windows Settings to confirm the choice and checks that it changed. Per user.",
+                "es": "Abre Configuración de Windows para confirmar la elección y comprueba que ha cambiado. Por usuario.",
+                "ca": "Obre Configuració de Windows per confirmar l'elecció i comprova que ha canviat. Per usuari."
               },
               "action": "Set-LTDefaultBrowserEdge"
             },

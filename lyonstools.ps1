@@ -1,9 +1,9 @@
 <#
-    Lyons Tools 1.3.2 - utilidades de Windows, Office, Java y firma digital
+    Lyons Tools 1.3.3 - utilidades de Windows, Office, Java y firma digital
     https://github.com/EhtuCom/LyonsTools  |  https://ehtu.com
 
     GENERATED FILE - DO NOT EDIT. Edit the sources and run Compile.ps1.
-    Built 2026-10-01 08:25
+    Built 2026-10-01 08:30
 #>
 
 <#
@@ -38,7 +38,7 @@ param(
 )
 
 $LT = [hashtable]::Synchronized(@{})
-$LT.Version = '1.3.2'
+$LT.Version = '1.3.3'
 $LT.Repo = 'EhtuCom/LyonsTools'
 $LT.SourceUrl = 'https://raw.githubusercontent.com/EhtuCom/LyonsTools/main/lyonstools.ps1'
 # A regular browser user agent: some official sites (abogacia.es) block unknown clients.
@@ -1281,7 +1281,9 @@ function Set-LTDefaultBrowser {
         return
     }
 
-    # The browser's own switch: Firefox can usually finish by itself; Chrome/Edge open Settings.
+    Test-LTAssociationPolicy
+
+    # Firefox can usually set itself as default (also on Windows 10 / Server).
     if ($Browser -eq 'Firefox') {
         Start-Process -FilePath $b.Path -ArgumentList $b.Switch -Wait -ErrorAction SilentlyContinue
         Start-Sleep -Seconds 2
@@ -1293,37 +1295,71 @@ function Set-LTDefaultBrowser {
 
     $build = [Environment]::OSVersion.Version.Build
     if ($build -ge 22000 -and $b.Registered) {
+        # Windows 11 / Server 2025: Settings opens on the browser's own page with a "Set default" button.
         $name = [Uri]::EscapeDataString($b.Registered.Name)
         Start-Process "ms-settings:defaultapps?$($b.Registered.Scope)=$name"
         Write-LTLog "Settings has opened on the $Browser page: press 'Set default' at the top." `
             "Se ha abierto Configuraci$([char]0x00F3)n en la p$([char]0x00E1)gina de ${Browser}: pulsa 'Establecer como predeterminado' arriba." `
             "S'ha obert Configuraci$([char]0x00F3) a la p$([char]0x00E0)gina de ${Browser}: prem 'Estableix com a predeterminat' a dalt." -Level Step
     }
-    elseif ($Browser -ne 'Firefox') {
-        Start-Process -FilePath $b.Path -ArgumentList $b.Switch -ErrorAction SilentlyContinue
-        Write-LTLog "In the window that opens, choose $Browser as the web browser." `
-            "En la ventana que se abre, elige $Browser como explorador web." `
-            "A la finestra que s'obre, tria $Browser com a navegador web." -Level Step
-    }
     else {
+        # Windows 10 / Server 2016-2022: the browsers' --make-default-browser switch is not reliable
+        # here (Edge just opens a window), so go straight to Settings > Default apps.
         Start-Process 'ms-settings:defaultapps'
-        Write-LTLog "In Settings > Default apps, choose $Browser as the web browser." `
-            "En Configuraci$([char]0x00F3)n > Aplicaciones predeterminadas, elige $Browser como explorador web." `
-            "A Configuraci$([char]0x00F3) > Aplicacions predeterminades, tria $Browser com a navegador web." -Level Step
+        Write-LTLog "In Settings > Default apps, click the browser under 'Web browser' and choose $Browser." `
+            "En Configuraci$([char]0x00F3)n > Aplicaciones predeterminadas, pulsa el navegador que aparece en 'Explorador web' y elige $Browser." `
+            "A Configuraci$([char]0x00F3) > Aplicacions predeterminades, prem el navegador que surt a 'Navegador web' i tria $Browser." -Level Step
+    }
+
+    # Wait for the user's choice and confirm it, instead of assuming it worked.
+    Write-LTLog "Waiting for the change (up to 2 minutes)..." "Esperando el cambio (hasta 2 minutos)..." "Esperant el canvi (fins a 2 minuts)..."
+    $deadline = (Get-Date).AddMinutes(2)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-LTDefaultBrowser $b.ProgId) {
+            Write-LTLog "Done: $Browser is now the default browser." "Hecho: $Browser es ahora el navegador predeterminado." "Fet: $Browser $([char]0x00E9)s ara el navegador predeterminat." -Level Ok
+            return
+        }
+        Start-Sleep -Seconds 2
+    }
+    Write-LTLog "$Browser is not the default browser yet. Finish the choice in Settings and use the 'Test' button to check it." `
+        "$Browser todav$([char]0x00ED)a no es el navegador predeterminado. Termina la elecci$([char]0x00F3)n en Configuraci$([char]0x00F3)n y usa el bot$([char]0x00F3)n 'Prueba' para comprobarlo." `
+        "$Browser encara no $([char]0x00E9)s el navegador predeterminat. Acaba l'elecci$([char]0x00F3) a Configuraci$([char]0x00F3) i fes servir el bot$([char]0x00F3) 'Prova' per comprovar-ho." -Level Warn
+}
+
+function Test-LTAssociationPolicy {
+    <#
+        Warns if a Group Policy "default associations configuration file" is set (common on
+        domain-joined terminal servers): it re-applies its browser/PDF defaults at every sign-in.
+    #>
+    $file = (Get-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' -ErrorAction SilentlyContinue).DefaultAssociationsConfiguration
+    if (-not $file) { return $false }
+    Write-LTLog "A Group Policy sets the default apps on this computer ($file). Any change may be undone at the next sign-in; ask the domain administrator to change that file." `
+        "Una directiva de grupo fija las aplicaciones predeterminadas en este equipo ($file). El cambio puede deshacerse al volver a iniciar sesi$([char]0x00F3)n; pide al administrador del dominio que cambie ese archivo." `
+        "Una directiva de grup fixa les aplicacions predeterminades en aquest equip ($file). El canvi es pot desfer en tornar a iniciar sessi$([char]0x00F3); demana a l'administrador del domini que canvi$([char]0x00EF) aquest fitxer." -Level Warn
+    $true
+}
+
+function Get-LTBrowserName([string]$ProgId) {
+    switch -Regex ($ProgId) {
+        '^ChromeHTML' { 'Google Chrome' }
+        '^MSEdgeHTM' { 'Microsoft Edge' }
+        '^FirefoxURL' { 'Mozilla Firefox' }
+        '^IE\.HTTP' { 'Internet Explorer' }
+        '^$' { Get-LTString 'not set (Windows default)' 'sin definir (predeterminado de Windows)' "sense definir (predeterminat de Windows)" }
+        default { $ProgId }
     }
 }
 
 function Open-LTDefaultBrowserTest {
-    <# Shows which browser is the default and opens ehtu.com with it, to confirm the change worked. #>
-    $progId = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice' -ErrorAction SilentlyContinue).ProgId
-    $name = switch -Regex ($progId) {
-        '^ChromeHTML' { 'Google Chrome' }
-        '^MSEdgeHTM' { 'Microsoft Edge' }
-        '^FirefoxURL' { 'Mozilla Firefox' }
-        '^$' { Get-LTString 'not set (Windows uses Microsoft Edge)' 'sin definir (Windows usa Microsoft Edge)' "sense definir (Windows fa servir Microsoft Edge)" }
-        default { $progId }
+    <# Shows which browser is the default (https and http) and opens ehtu.com with it, to confirm the change worked. #>
+    $base = 'HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations'
+    $https = Get-LTBrowserName (Get-ItemProperty "$base\https\UserChoice" -ErrorAction SilentlyContinue).ProgId
+    $http = Get-LTBrowserName (Get-ItemProperty "$base\http\UserChoice" -ErrorAction SilentlyContinue).ProgId
+    Write-LTLog "Current default browser: $https" "Navegador predeterminado actual: $https" "Navegador predeterminat actual: $https" -Level Ok
+    if ($http -ne $https) {
+        Write-LTLog "Note: http links open with $http (https with $https)." "Atenci$([char]0x00F3)n: los enlaces http se abren con $http (https con $https)." "Atenci$([char]0x00F3): els enlla$([char]0x00E7)os http s'obren amb $http (https amb $https)." -Level Warn
     }
-    Write-LTLog "Current default browser: $name" "Navegador predeterminado actual: $name" "Navegador predeterminat actual: $name" -Level Ok
+    [void](Test-LTAssociationPolicy)
     $url = $LT.Config.app.publisherUrl
     Write-LTLog "Opening $url with the default browser..." "Abriendo $url con el navegador predeterminado..." "Obrint $url amb el navegador predeterminat..."
     Start-Process $url
@@ -1597,7 +1633,7 @@ $LTConfigJson = @'
 {
   "app": {
     "name": "Lyons Tools",
-    "version": "1.3.2",
+    "version": "1.3.3",
     "repo": "EhtuCom/LyonsTools",
     "publisher": "ehtu.com",
     "publisherUrl": "https://ehtu.com",
@@ -2104,9 +2140,9 @@ $LTConfigJson = @'
               "id": "browser-default-chrome",
               "label": { "en": "Make Google Chrome the default browser", "es": "Hacer Google Chrome el navegador predeterminado", "ca": "Fes de Google Chrome el navegador predeterminat" },
               "description": {
-                "en": "Installs Chrome if needed (administrator). Windows asks you to confirm it with 'Set default'. Per user.",
-                "es": "Instala Chrome si hace falta (administrador). Windows pide confirmarlo con 'Establecer como predeterminado'. Por usuario.",
-                "ca": "Instal\u00b7la Chrome si cal (administrador). Windows demana confirmar-ho amb 'Estableix com a predeterminat'. Per usuari."
+                "en": "Installs Chrome if needed (administrator). Opens Windows Settings to confirm the choice and checks that it changed. Per user.",
+                "es": "Instala Chrome si hace falta (administrador). Abre Configuraci\u00f3n de Windows para confirmar la elecci\u00f3n y comprueba que ha cambiado. Por usuario.",
+                "ca": "Instal\u00b7la Chrome si cal (administrador). Obre Configuraci\u00f3 de Windows per confirmar l'elecci\u00f3 i comprova que ha canviat. Per usuari."
               },
               "action": "Set-LTDefaultBrowserChrome"
             },
@@ -2114,9 +2150,9 @@ $LTConfigJson = @'
               "id": "browser-default-edge",
               "label": { "en": "Make Microsoft Edge the default browser", "es": "Hacer Microsoft Edge el navegador predeterminado", "ca": "Fes de Microsoft Edge el navegador predeterminat" },
               "description": {
-                "en": "Windows asks you to confirm it with 'Set default'. Per user.",
-                "es": "Windows pide confirmarlo con 'Establecer como predeterminado'. Por usuario.",
-                "ca": "Windows demana confirmar-ho amb 'Estableix com a predeterminat'. Per usuari."
+                "en": "Opens Windows Settings to confirm the choice and checks that it changed. Per user.",
+                "es": "Abre Configuraci\u00f3n de Windows para confirmar la elecci\u00f3n y comprueba que ha cambiado. Por usuario.",
+                "ca": "Obre Configuraci\u00f3 de Windows per confirmar l'elecci\u00f3 i comprova que ha canviat. Per usuari."
               },
               "action": "Set-LTDefaultBrowserEdge"
             },
